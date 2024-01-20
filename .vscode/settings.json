@@ -1,0 +1,10 @@
+{
+	"editor.rulers": [
+		120
+	],
+	"C_Cpp.autoAddFileAssociations": false,
+	"files.exclude": {
+		"**/.antlr": true,
+		"build": true
+	},
+}

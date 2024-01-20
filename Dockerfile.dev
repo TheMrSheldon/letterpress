@@ -1,0 +1,26 @@
+FROM ubuntu:23.04
+
+
+########################################################################################################################
+# Install Dependencies                                                                                                 #
+########################################################################################################################
+USER root
+RUN apt-get update && \
+    apt-get -y install g++-13 cmake git antlr4
+
+# Needed for the dev environment
+RUN apt-get update && \
+    apt-get -y install build-essential cppcheck flawfinder doxygen graphviz gdb
+
+# Dependencies of libqpdf
+RUN apt-get update && \
+    apt-get -y install zlib1g-dev libjpeg-dev
+
+########################################################################################################################
+# Create User                                                                                                          #
+########################################################################################################################
+# Change root Password to 1234
+RUN echo 'root:1234' | chpasswd
+# Create new user: "dev"
+RUN useradd -ms /bin/bash dev
+USER dev
