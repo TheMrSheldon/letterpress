@@ -81,17 +81,26 @@ target_include_directories(letterpress PUBLIC ${angelscript_SOURCE_DIR}/add_on)
 # target_link_libraries(letterpress ${FLEX_LIBRARIES})
 
 # ANTLR4
-set(ANTLR4CPP_JAR_LOCATION ${PROJECT_SOURCE_DIR}/thirdparty/antlr-4.13.0-complete.jar)
-include(../cmake/ExternalAntlr4Cpp.cmake)
-message(STATUS "Found antlr4cpp libs: ${ANTLR4CPP_LIBS} and includes: ${ANTLR4CPP_INCLUDE_DIRS} ")
+# required if linking to static library
+add_definitions(-DANTLR4CPP_STATIC)
+# using /MD flag for antlr4_runtime (for Visual C++ compilers only)
+set(ANTLR4_WITH_STATIC_CRT OFF)
+set(ANTLR_EXECUTABLE ${PROJECT_SOURCE_DIR}/thirdparty/antlr-4.13.0-complete.jar)
+include(ExternalAntlr4Cpp)
 target_include_directories(letterpress PUBLIC ${ANTLR4CPP_INCLUDE_DIRS})
-target_link_directories(letterpress PUBLIC ${ANTLR4CPP_LIBS})
-target_link_libraries(letterpress antlr4-runtime)
-antlr4cpp_process_grammar(letterpress lp ${CMAKE_CURRENT_LIST_DIR}/letterpress/parser/lplexer.g4 ${CMAKE_CURRENT_LIST_DIR}/letterpress/parser/lpparser.g4)
-# antlr4cpp_process_grammar(letterpress lp ${CMAKE_CURRENT_LIST_DIR}/letterpress/parser/lpparser.g4)
-add_dependencies(letterpress antlr4cpp antlr4cpp_generation_lp)
-target_include_directories(letterpress PUBLIC ${antlr4cpp_include_dirs_lp})
-target_sources(letterpress PUBLIC ${antlr4cpp_src_files_lp})
+
+find_package(ANTLR REQUIRED)
+
+antlr_target(LPGrammarLexer ${CMAKE_CURRENT_LIST_DIR}/letterpress/parser/lplexer.g4 LEXER PACKAGE lp)
+antlr_target(LPGrammarParser ${CMAKE_CURRENT_LIST_DIR}/letterpress/parser/lpparser.g4 PARSER
+			 VISITOR
+             PACKAGE lp
+             DEPENDS_ANTLR LPGrammarLexer
+             COMPILE_FLAGS -lib ${ANTLR_LPGrammarLexer_OUTPUT_DIR})
+
+target_link_libraries(letterpress antlr4_static)
+target_include_directories(letterpress PUBLIC ${ANTLR_LPGrammarLexer_OUTPUT_DIR} ${ANTLR_LPGrammarParser_OUTPUT_DIR})
+target_sources(letterpress PUBLIC ${ANTLR_LPGrammarLexer_CXX_OUTPUTS} ${ANTLR_LPGrammarParser_CXX_OUTPUTS})
 
 # download qpdf cmake project and run (https://qpdf.readthedocs.io/en/stable/installation.html#installation-and-packaging)
 # cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
