@@ -49,5 +49,7 @@ namespace lp::pdf::utils {
 		PageContentStream& setTextLeading(float leading);
 
 		void flush();
+
+		ContentStreamWriter& getStreamWriter() noexcept { return stream; }
 	};
 }

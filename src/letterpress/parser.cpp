@@ -121,10 +121,12 @@ public:
 		/** \todo distinguish character, whitespace and new-paragraph*/
 		switch (ctx->getStart()->getType()) {
 		case lpparser::SPACE:
-			document.writeWhiteSpace();
+			document.addWhitespace();
 			break;
 		case lpparser::CHARACTER:
-			document.writeText(ctx->getText());
+			/** \todo iterate codepoints and add appropriate kerning etc. **/
+			for (auto c : ctx->getText())
+				document.addCharacter(c);
 			break;
 		case lpparser::PAR:
 			document.writeParagraph();
@@ -140,7 +142,7 @@ public:
 	}
 };
 
-lp::Parser::Parser() : logger(lp::log::getLogger("parser")) {}
+lp::Parser::Parser(Driver& driver) : logger(lp::log::getLogger("parser")), driver(driver) {}
 
 Document lp::Parser::parse(const path& input, std::vector<path> includeDirs) noexcept {
 	std::ifstream stream(input, std::ios::binary);
@@ -167,5 +169,13 @@ Document lp::Parser::parse(std::istream& input, std::vector<path> includeDirs) n
 	auto time = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 	logger->info("Parsing done (took {} ms)", time.count());
 
+	lp::Page page {
+		/** A4 page **/
+		.width = 210,
+		.height = 297,
+		.content = doc.vertList
+	};
+	driver.shipout(page);
+	
 	return doc;
 }

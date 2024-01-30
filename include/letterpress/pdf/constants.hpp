@@ -3,6 +3,9 @@
 #include "types/identifier.hpp"
 
 namespace lp::pdf {
+	constexpr double mm_to_inch = 1/25.4;
+	constexpr double inch_to_user = 72.0;
+
 	enum class Filter {
 		None, FlateDecode
 	};

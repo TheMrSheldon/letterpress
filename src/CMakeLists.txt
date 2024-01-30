@@ -1,17 +1,18 @@
 include(FetchContent)
 enable_testing()
 
-add_executable(letterpress)
+add_library(letterpress)
 target_sources(letterpress PRIVATE
-	main.cpp
 	letterpress/logging.cpp
 	letterpress/parser.cpp
 	letterpress/document/document.cpp
+	letterpress/document/hyphenation.cpp
 	letterpress/pdf/constants.cpp
 	letterpress/pdf/font_descriptor.cpp
 	letterpress/pdf/font.cpp
 	letterpress/pdf/page.cpp
 	letterpress/pdf/pdf.cpp
+	letterpress/pdf/pdfdriver.cpp
 	letterpress/pdf/utils/content_stream_writer.cpp
 	letterpress/pdf/utils/file_content_provider.cpp
 	letterpress/pdf/utils/fontfile.cpp
@@ -21,9 +22,15 @@ target_sources(letterpress PRIVATE
 	letterpress/scriptengine/module.cpp
 	letterpress/scriptengine/scriptengine.cpp
 )
-
 target_compile_features(letterpress PUBLIC cxx_std_23)
 target_include_directories(letterpress PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../include)
+
+add_executable(letterpressexe)
+target_sources(letterpressexe PRIVATE
+	main.cpp
+)
+target_compile_features(letterpressexe PUBLIC cxx_std_23)
+target_link_libraries(letterpressexe letterpress)
 
 ##########################################################################################
 # Libraries
@@ -59,27 +66,6 @@ target_sources(letterpress PRIVATE
 )
 target_include_directories(letterpress PUBLIC ${angelscript_SOURCE_DIR}/add_on)
 
-
-# Bison & Flex
-# find_package(BISON 2.1.3)
-# if(BISON_FOUND)
-# 	BISON_TARGET(parser letterpress/parser/parser.yy ${CMAKE_CURRENT_BINARY_DIR}/parser_out/parser.cpp
-#				DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/parser_out/parser.hpp)
-# else()
-# 	message(FATAL_ERROR "Bison not found -- please install bison")
-# endif()
-# find_package(FLEX)
-# if(FLEX_FOUND)
-# 	FLEX_TARGET(scanner letterpress/parser/lexer.ll ${CMAKE_CURRENT_BINARY_DIR}/parser_out/lexer.cpp
-#				DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/parser_out/lexer.hpp)
-# else()
-# 	message(FATAL_ERROR "Flex not found -- please install flex")
-# endif()
-# ADD_FLEX_BISON_DEPENDENCY(scanner parser)
-# target_include_directories(letterpress PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/parser_out)
-# target_sources(letterpress PUBLIC ${BISON_parser_OUTPUTS} ${FLEX_scanner_OUTPUTS})
-# target_link_libraries(letterpress ${FLEX_LIBRARIES})
-
 # ANTLR4
 # required if linking to static library
 add_definitions(-DANTLR4CPP_STATIC)
@@ -102,14 +88,7 @@ target_link_libraries(letterpress antlr4_static)
 target_include_directories(letterpress PUBLIC ${ANTLR_LPGrammarLexer_OUTPUT_DIR} ${ANTLR_LPGrammarParser_OUTPUT_DIR})
 target_sources(letterpress PUBLIC ${ANTLR_LPGrammarLexer_CXX_OUTPUTS} ${ANTLR_LPGrammarParser_CXX_OUTPUTS})
 
-# download qpdf cmake project and run (https://qpdf.readthedocs.io/en/stable/installation.html#installation-and-packaging)
-# cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
-# cmake --build build --parallel --target libqpdf libqpdf_static
-# cmake --install build --component lib
-# cmake --install build --component dev
-#find_package(qpdf REQUIRED)
-#target_link_libraries(letterpress qpdf::libqpdf)
-
+# QPDF
 FetchContent_Declare(QPDF GIT_REPOSITORY https://github.com/qpdf/qpdf.git GIT_TAG v11.6.0)
 FetchContent_MakeAvailable(QPDF)
 target_link_libraries(letterpress libqpdf)
@@ -118,4 +97,4 @@ target_include_directories(letterpress PUBLIC ${QPDF_SOURCE_DIR}/include)
 # CLI11
 FetchContent_Declare(cli11 GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git GIT_TAG v2.3.2)
 FetchContent_MakeAvailable(cli11)
-target_link_libraries(letterpress CLI11::CLI11)
+target_link_libraries(letterpressexe CLI11::CLI11)

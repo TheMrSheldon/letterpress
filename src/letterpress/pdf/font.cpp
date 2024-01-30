@@ -6,6 +6,7 @@
 using namespace lp::pdf;
 using namespace lp::pdf::utils;
 
+/** \todo this is not optimal since if a font-object is out of scope, it can't be part of the pdf anymore **/
 Font::Font(PDF& pdf, std::string path, std::string afmPath) : pdf(pdf), file(path, afmPath), handle(QPDFObjectHandle::newDictionary()), descriptor(*this) {
 	handle.replaceKey("/Type", QPDFObjectHandle::newName("/Font"));
 	handle.replaceKey("/Subtype", QPDFObjectHandle::newName("/TrueType"));
@@ -27,9 +28,6 @@ Font::Font(PDF& pdf, std::string path, std::string afmPath) : pdf(pdf), file(pat
 	data = std::make_shared<FileContentProvider>(path, filter);
 	stream.replaceStreamData(data, QPDFObjectHandle::parse(to_string(filter)), QPDFObjectHandle::newNull());
 	descriptor.setFontFile(stream);
-
-	
-	pdf.fontsToSubset.push_back(*this);
 
 	//TODO: feed glyph information
 	// TODO: remove and replace by dynamicly loaded values
@@ -54,7 +52,7 @@ void Font::addToSubset(unsigned glyph) {
 }
 
 void Font::computeSubset() {
-	//TODO: actually calculate only for necessary characters
+	/** \todo actually calculate only for necessary characters **/
 	handle.replaceKey("/FirstChar", QPDFObjectHandle::newInteger(0));
 	handle.replaceKey("/LastChar", QPDFObjectHandle::newInteger(255));
 	auto widths = QPDFObjectHandle::newArray();

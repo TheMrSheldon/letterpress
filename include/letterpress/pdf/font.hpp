@@ -1,12 +1,13 @@
 #pragma once
 
-#include <string>
-#include <vector>
-
-#include <letterpress/pdf/utils/fontfile.hpp>
 #include "font_descriptor.hpp"
+#include "utils/fontfile.hpp"
 
 #include <qpdf/QPDFObjectHandle.hh>
+
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace lp::pdf::utils {
 	class Resources;
@@ -17,6 +18,7 @@ namespace lp::pdf {
 
 	class Font final {
 		friend lp::pdf::utils::Resources;
+		friend PDF;
 	private:
 		PDF& pdf;
 		utils::FontFile file;
@@ -27,6 +29,9 @@ namespace lp::pdf {
 
 		QPDFObjectHandle& getHandle();
 	public:
+		/** 
+		 * @brief Creates a new font object. Do not call this directly, use PDF::addFont instead!
+		 **/
 		Font(PDF& pdf, std::string path, std::string afmPath = "");
 
 		unsigned getGlyphForChar(char c) const;

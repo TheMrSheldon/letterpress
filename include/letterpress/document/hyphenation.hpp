@@ -12,9 +12,13 @@ namespace lp::doc {
 
 	public:
 		Hyphenation() noexcept;
+		/**
+		 * @brief Adds a new hyphenation pattern.
+		 * @details A pattern consists of DLDL...DLD where D is a digit and L a letter.
+		 */
 		void addPattern(const std::string& pattern) noexcept;
 		std::vector<std::string> hyphenate(std::string word) const noexcept;
 
 		static Hyphenation fromFile(std::filesystem::path file) noexcept;
 	};
-}
+} // namespace lp::doc

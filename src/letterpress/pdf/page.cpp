@@ -23,6 +23,11 @@ utils::Resources& Page::getResources() {
 	return resources;
 }
 
+double Page::getUserUnit() {
+	auto value = handle.getObjectHandle().getKey("/UserUnit");
+	return value.isNull()? 1.0 : value.getNumericValue();
+}
+
 void Page::setMediaBox(int minx, int miny, int maxx, int maxy) {
 	using Rect = QPDFObjectHandle::Rectangle;
 	handle.getObjectHandle().replaceKey(

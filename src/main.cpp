@@ -1,6 +1,7 @@
 #include <letterpress/letterpress.hpp>
 #include <letterpress/logging.hpp>
 #include <letterpress/parser.hpp>
+#include <letterpress/pdf/pdfdriver.hpp>
 #include <letterpress/scriptengine/scriptengine.hpp>
 
 #include <qpdf/QPDF.hh>
@@ -61,9 +62,21 @@ static void runPDFCommand(const PDFAppArgs args) {
 	logger->debug("Include directories");
 	for (auto&& dir : args.includeDirs)
 		logger->debug("    {}", dir);
-	lp::Parser parser;
+	lp::PDFDriver driver(output);
+	lp::Parser parser(driver);
+	/**For testing purposes only*/
+	/*std::vector<lp::doc::Document::HElem> vec;
+	vec.push_back((uint32_t)'H');
+	vec.push_back((uint32_t)'e');
+	lp::Page page {
+		/** A4 page **/
+		/*.width = 210,
+		.height = 297,
+		.content = vec
+	};
+	driver.shipout(page);*/
+	/***/
 	auto document = parser.parse(args.input, args.includeDirs);
-	// document.save(outPath);
 }
 
 static void runCompileCommand(CompileAppArgs args) {
@@ -86,6 +99,7 @@ void setupLoggerArgs(CLI::App& app, LoggerConf& conf) {
 }
 
 int main(int argc, char* argv[]) {
+	/** \todo add app description **/
 	CLI::App app("TODO");
 	auto versionString = std::format(
 			"letterpress v.{}\nqpdf v.{}\nangelscript v.{}", lp::version, QPDF::QPDFVersion(), asGetLibraryVersion()
@@ -116,54 +130,4 @@ int main(int argc, char* argv[]) {
     CLI11_PARSE(app, argc, argv);
 
 	return 0;
-
-	/*
-	PDF pdf;
-	Font font1(pdf, "/home/shelly/documents/repos/letterpress/res/fonts/computer-modern/cmunrm.ttf");
-	Font font2(pdf, "/home/shelly/documents/repos/letterpress/res/fonts/LatinmodernmathRegular.otf");
-	Font font3(pdf, "/home/shelly/documents/repos/letterpress/res/fonts/baskervaldx/type1/Baskervaldx-Reg.pfb", "/home/shelly/documents/repos/letterpress/res/fonts/baskervaldx/afm/Baskervaldx-Reg.afm");
-	auto& page = pdf.addPage();
-	page.setMediaBox(0, 0, 612, 392);
-
-	auto& stream = page.getContentStream();
-	stream.setFont(font1, 24)
-		.beginText()
-			.setTextLeading(24)
-			.moveText(72, 320)
-			.showKernedText("The quick brown fox jumped over the sleazy dog")
-			.nextLine()
-			.setFont(font2, 24)
-			.showKernedText("The quick brown fox jumped over the sleazy dog")
-			.nextLine()
-			.setFont(font3, 24)
-			.showKernedText("The quick brown fox jumped over the sleazy dog")
-			.nextLine()
-			.setFont(font3, 12)
-			.showKernedText("The quick brown fox jumped over the sleazy dog")
-			.nextLine()
-			.showKernedText("Σ")
-		.endText();
-
-	pdf.save("test.pdf");
-	*/
-
-
-	/*
-	lp::doc::Document doc;
-	doc.pushPageStyle();
-	doc.pushLayout();
-	doc.pushFont("cmunrm.ttf", 12);
-	doc.writeText(R"(
-		Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et
-		dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet
-		clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet,
-		consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed
-		diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea
-		takimata sanctus est Lorem ipsum dolor sit amet.
-	)");
-	doc.popFont();
-	doc.popLayout();
-	doc.popPageStyle();
-	doc.save("test.pdf");
-	*/
 }
