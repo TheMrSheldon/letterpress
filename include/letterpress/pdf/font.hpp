@@ -42,4 +42,6 @@ namespace lp::pdf {
 		void computeSubset();
 	};
 
+	using FontPtr = std::shared_ptr<Font>;
+
 }

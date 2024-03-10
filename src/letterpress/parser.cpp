@@ -34,10 +34,13 @@ private:
 	Visitor(Visitor&& other) = delete;
 
 public:
-	Visitor(std::vector<path> includeDirs)
-			: logger(lp::log::getLogger("parser")), includeDirs(includeDirs), scriptctx(nullptr) {
+	Visitor(lp::Driver& driver, std::vector<path> includeDirs)
+			: logger(lp::log::getLogger("parser")), document({driver}), includeDirs(includeDirs), scriptctx(nullptr) {
 		engine.init();
 		scriptctx = std::move(engine.createContext());
+		/** \todo remove hardcoded font **/
+		auto font = std::make_shared<lp::pdf::utils::FontFile>("res/fonts/computer-modern/cmunrm.ttf");
+		document.pushFont(font);
 	}
 
 	virtual ~Visitor() {
@@ -57,6 +60,7 @@ public:
 
 	virtual std::any visitFile(lpparser::FileContext* ctx) override {
 		visitChildren(ctx);
+		document.flush();
 		return document;
 	}
 
@@ -162,20 +166,12 @@ Document lp::Parser::parse(std::istream& input, std::vector<path> includeDirs) n
 	CommonTokenStream tokens(&lexer);
 	lpparser parser(&tokens);
 
-	Visitor visitor(includeDirs);
+	Visitor visitor(driver, includeDirs);
 	auto doc = std::any_cast<Document>(visitor.visit(parser.file()));
 
 	auto stop = std::chrono::steady_clock::now();
 	auto time = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 	logger->info("Parsing done (took {} ms)", time.count());
-
-	lp::Page page {
-		/** A4 page **/
-		.width = 210,
-		.height = 297,
-		.content = doc.vertList
-	};
-	driver.shipout(page);
 	
 	return doc;
 }

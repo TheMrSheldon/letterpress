@@ -13,9 +13,9 @@ QPDFObjectHandle& Resources::getHandle() {
 	return handle;
 }
 
-Identifier Resources::addFont(Font font) {
+Identifier Resources::addFont(FontPtr font) {
 	int number = 1;
 	for (;fonts.hasKey("/F"+std::to_string(number)); ++number);
-	fonts.replaceKey("/F"+std::to_string(number), font.getHandle());
+	fonts.replaceKey("/F"+std::to_string(number), font->getHandle());
 	return Identifier("F"+std::to_string(number)); //TODO: implement
 }

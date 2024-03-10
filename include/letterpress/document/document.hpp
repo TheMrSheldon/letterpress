@@ -1,13 +1,20 @@
 #pragma once
 
+#include "boxes.hpp"
 #include "../logging.hpp"
 #include "../pdf/utils/fontfile.hpp"
 
 #include <any>
 #include <filesystem>
+#include <memory>
+#include <stack>
 #include <string>
 #include <variant>
 #include <vector>
+
+namespace lp {
+	class Driver;
+};
 
 namespace lp::doc {
 
@@ -22,6 +29,7 @@ namespace lp::doc {
 	class Document final {
 		/** \todo Maybe rename this class to DocumentBuilder to make clear that it constructs a document **/
 
+	private:
 		enum class Mode {
 			UnrestHorizMode,	/**< Adds material to the current horizontal list. **/
 			/**
@@ -33,38 +41,27 @@ namespace lp::doc {
 			MathMode,
 			DispMathMode
 		};
-	public:
-		struct Glue {
-			float amount;
-		};
-		using HElem = std::variant<
-			char32_t,	/** < Character codepoint **/
-			Glue
-		>;
-		/*class HBox;
-		class VBox;
-		using VElem = std::variant<
-			HBox, VBox, Glue
-		>;*/
-		using HorizList = std::vector<HElem>;
-		using VertList = std::vector<std::any>;
-	private:
+
+		lp::Driver& driver;
+
 		lp::log::LoggerPtr logger;
+		/** \todo maybe this can be removed and inferred from the "boxes" stack **/
 		Mode mode = Mode::VertMode; /** \todo: is this the correct initial state? **/
 		
-		// std::vector<Page> pages;
-		// lp::pdf::utils::FontFile currentfont;
-	public: /** For debugging **/
-		HorizList horizList;	
-		VertList vertList;
-	private:
+		std::stack<AnyBox> boxes;
 
-		void shipHorizList();
+		std::stack<std::shared_ptr<lp::pdf::utils::FontFile>> fonts;
+
+		void ship(AnyBox& top, HBox& hbox) const;
 	public:
-		Document() noexcept;
+		Document(lp::Driver& driver) noexcept;
 
+		void pushFont(std::shared_ptr<lp::pdf::utils::FontFile> font) noexcept;
+		void popFont() noexcept;
 		void addCharacter(char32_t character);
 		void addWhitespace();
 		void writeParagraph();
+
+		void flush();
 	};
 }

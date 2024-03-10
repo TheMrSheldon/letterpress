@@ -18,8 +18,16 @@ namespace lp::pdf::utils {
 		FT_Face face;
 		bool hasKerningInfo;
 
+		FontFile(const FontFile& other) = delete;
+		FontFile& operator=(const FontFile& other) = delete;
+
+		void destroy() noexcept;
 	public:
+		FontFile();
+		FontFile(FontFile&& other);
 		FontFile(std::string path, std::string afmPath = "");
+		~FontFile();
+		FontFile& operator=(FontFile&& other);
 
 		std::string getFamilyName() const noexcept;
 

@@ -41,7 +41,7 @@ FetchContent_MakeAvailable(spdlog)
 target_link_libraries(letterpress spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32>)
 
 # Freetype
-FetchContent_Declare(FREETYPE GIT_REPOSITORY https://gitlab.freedesktop.org/freetype/freetype.git GIT_TAG VER-2-12-1)
+FetchContent_Declare(FREETYPE GIT_REPOSITORY https://gitlab.freedesktop.org/freetype/freetype.git GIT_TAG VER-2-13-2)
 FetchContent_MakeAvailable(FREETYPE)
 target_compile_definitions(freetype PRIVATE FT_CONFIG_OPTION_ERROR_STRINGS)
 target_link_libraries(letterpress freetype)
@@ -89,7 +89,7 @@ target_include_directories(letterpress PUBLIC ${ANTLR_LPGrammarLexer_OUTPUT_DIR}
 target_sources(letterpress PUBLIC ${ANTLR_LPGrammarLexer_CXX_OUTPUTS} ${ANTLR_LPGrammarParser_CXX_OUTPUTS})
 
 # QPDF
-FetchContent_Declare(QPDF GIT_REPOSITORY https://github.com/qpdf/qpdf.git GIT_TAG v11.6.0)
+FetchContent_Declare(QPDF GIT_REPOSITORY https://github.com/qpdf/qpdf.git GIT_TAG v11.9.0)
 FetchContent_MakeAvailable(QPDF)
 target_link_libraries(letterpress libqpdf)
 target_include_directories(letterpress PUBLIC ${QPDF_SOURCE_DIR}/include)

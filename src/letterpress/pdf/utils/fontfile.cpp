@@ -19,6 +19,10 @@ static void initFreetype() {
 	}
 }
 
+FontFile::FontFile(FontFile&& other) : face(std::move(other.face)), hasKerningInfo(other.hasKerningInfo) {
+	other.face = nullptr;
+}
+
 FontFile::FontFile(std::string path, std::string afmPath) {
 	initFreetype();
 	auto error = FT_New_Face(library, path.c_str(), 0, &face);
@@ -50,6 +54,25 @@ FontFile::FontFile(std::string path, std::string afmPath) {
 		//	FT_Set_Charmap(face, charmap);
 		//}
 	}
+}
+
+FontFile::~FontFile() {
+	destroy();
+}
+
+FontFile& FontFile::operator=(FontFile&& other) {
+	destroy();
+	face = std::move(other.face);
+	other.face = nullptr;
+	hasKerningInfo = other.hasKerningInfo;
+	return *this;
+}
+
+void FontFile::destroy() noexcept {
+	if (face == nullptr)
+		return;
+	FT_Done_Face(face);
+	face = nullptr;
 }
 
 std::string FontFile::getFamilyName() const noexcept {
