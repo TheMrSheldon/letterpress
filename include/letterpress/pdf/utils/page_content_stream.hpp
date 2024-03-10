@@ -19,7 +19,7 @@ namespace lp::pdf::utils {
 		Page& page;
 		ContentStreamWriter stream;
 		struct GraphicsState {
-			FontPtr font;
+			Font* font;
 			//strokingColorSpace
 			//nonStrokingColorSpace
 		};
@@ -34,7 +34,7 @@ namespace lp::pdf::utils {
 	public:
 		PageContentStream(Page& page, QPDFObjectHandle handle);
 
-		PageContentStream& setFont(FontPtr font, float size);
+		PageContentStream& setFont(Font& font, float size);
 
 		PageContentStream& saveGraphicsState();
 		PageContentStream& restoreGraphicsState();

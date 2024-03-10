@@ -20,9 +20,9 @@ QPDFObjectHandle& PageContentStream::getHandle() {
 	return handle;
 }
 
-PageContentStream& PageContentStream::setFont(FontPtr font, float size) {
+PageContentStream& PageContentStream::setFont(Font& font, float size) {
 	auto& gstate = getGraphicsState();
-	gstate.font = font;
+	gstate.font = &font;
 	auto& resources = page.getResources();
 	auto fontid = resources.addFont(font);
 	stream.setFontAndSize(fontid, size);

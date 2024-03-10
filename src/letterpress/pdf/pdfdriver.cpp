@@ -52,14 +52,19 @@ void PDFDriver::writeHBox(lp::pdf::Page& page, const lp::doc::HBox& hbox) {
 	auto& stream = page.getContentStream();
 	lp::pdf::Array array;
 	std::string text;
+	float width = 0;
 	for (auto&& he : hbox.content) {
 		if (const auto val = std::get_if<lp::doc::Glyph>(&he)) {
 			text += cpp20_codepoint_to_utf8(val->charcode);
+			width += val->width;
 		} else if (const auto val = std::get_if<lp::doc::Glue>(&he)) {
 			array.append(text);
-			array.append(" ");
-			array.append(val->idealwidth);
+			// The number shall be expressed in thousandths of a unit of text space
+			// (PDF 2.0 Table 107: Text-showing operators)
+			//array.append(-width/1000-val->idealwidth*100);
+			array.append(-val->idealwidth);
 			text = "";
+			width = 0;
 		} else {
 			throw std::runtime_error("Unexpected datatype");
 		}
@@ -79,14 +84,12 @@ void PDFDriver::shipout(const lp::doc::VBox& page) {
     /*auto& font1 = pdf.addFont("res/fonts/computer-modern/cmunrm.ttf");
 	auto& font2 = pdf.addFont("res/fonts/LatinmodernmathRegular.otf");
 	auto& font3 = pdf.addFont("res/fonts/baskervaldx/type1/Baskervaldx-Reg.pfb", "res/fonts/baskervaldx/afm/Baskervaldx-Reg.afm");*/
-	auto font1 = std::make_shared<Font>(pdf, "res/fonts/computer-modern/cmunrm.ttf");
-	// auto font1 = std::make_shared<Font>(pdf, "res/fonts/LatinmodernmathRegular.otf");
-
+	auto fontfile = std::make_shared<utils::FontFile>("res/fonts/computer-modern/cmunrm.ttf");
+	auto font1 = pdf.registerFont(fontfile);
+	
 	auto& stream = pdfpage.getContentStream();
 	stream.setFont(font1, 12);
-
 	stream.beginText().setTextLeading(24).moveText(72, height-72);
 	writeVBox(pdfpage, page);
 	stream.endText();
-	font1->computeSubset(); /** \todo Should not be needed in the end but is for now **/
 }

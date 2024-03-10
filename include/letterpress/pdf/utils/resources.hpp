@@ -18,6 +18,6 @@ namespace lp::pdf::utils {
 	public:
 		Resources();
 
-		Identifier addFont(FontPtr font);
+		Identifier addFont(Font& font);
 	};
 }

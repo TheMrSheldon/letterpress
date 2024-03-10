@@ -18,7 +18,7 @@ QPDF& PDF::getHandle() {
 }
 
 void PDF::subsetFonts() {
-	for (auto&& font : fonts)
+	for (auto&& [_, font] : fonts)
 		font->computeSubset();
 }
 
@@ -26,8 +26,13 @@ Page& PDF::addPage() {
 	return *pages.emplace_back(std::make_unique<Page>(*this));
 }
 
-Font& PDF::addFont(std::filesystem::path path, std::filesystem::path afmPath) {
-	return *fonts.emplace_back(std::make_unique<Font>(*this, path, afmPath));
+Font& PDF::registerFont(lp::pdf::utils::FontFilePtr font) {
+	auto iterator = fonts.find(font);
+	if (iterator == std::end(fonts)) {
+		auto& ptr = fonts[font] = std::move(std::make_unique<Font>(*this, font));
+		return *ptr;
+	}
+	return *iterator->second;
 }
 
 void PDF::save(std::filesystem::path path) {

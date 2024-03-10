@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <inttypes.h>
 #include <string>
 
@@ -14,6 +15,8 @@ namespace lp::pdf::utils {
 			float advanceX;
 			float width, height;
 		};
+
+		std::filesystem::path path;
 		
 		FT_Face face;
 		bool hasKerningInfo;
@@ -25,9 +28,11 @@ namespace lp::pdf::utils {
 	public:
 		FontFile();
 		FontFile(FontFile&& other);
-		FontFile(std::string path, std::string afmPath = "");
+		FontFile(std::filesystem::path path, std::filesystem::path afmPath = "");
 		~FontFile();
 		FontFile& operator=(FontFile&& other);
+
+		std::filesystem::path getPath() const noexcept;
 
 		std::string getFamilyName() const noexcept;
 

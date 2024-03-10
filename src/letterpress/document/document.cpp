@@ -45,17 +45,27 @@ void Document::flush() {
 
 void Document::ship(AnyBox& top, HBox& hbox) const {
     logger->trace("Shipping horizontal list");
-    /** \todo break paragraphs **/
-    HBox current{{.height=hbox.height}};
+    /** \todo break paragraphs non-greedily **/
+    /** \todo remove hardcoded width **/
+    HBox current{{.width=36000, .height=hbox.height}};
     float width = 0;
     for (auto&& tmp : hbox.content) {
-        if (!std::holds_alternative<Glue>(tmp) || !current.content.empty())
+        /** Skip glue at the beginning **/
+        if (!std::holds_alternative<Glue>(tmp) || !current.content.empty()) {
             current.content.push_back(tmp);
-        std::visit(overloaded{
-            [&width](auto& box) { width += box.width; },
-            [](Glue& glue) {}
-        }, tmp);
-        if (width >= 55000 && std::holds_alternative<Glue>(tmp)) {//(current.content.size() == 200) {
+            std::visit(overloaded{
+                [&width](auto& box) { width += box.width; },
+                [&width](Glue& glue) { width += glue.idealwidth; }
+            }, tmp);
+        }
+        if (width >= current.width && std::holds_alternative<Glue>(tmp)) {
+            /** \todo space correctly instead of evenly **/
+            auto count = std::count_if(std::begin(current.content), std::end(current.content), [](lp::doc::HBox::Elem& element) { return std::holds_alternative<Glue>(element); });
+            float glueWidth = (39000 - width) / count;
+            for (auto&& element : current.content)
+                if (std::holds_alternative<Glue>(element))
+                    std::get<Glue>(element).idealwidth += glueWidth;
+
             width = 0;
             std::visit([&current](auto& top) { top.content.push_back(current); }, top);
             current.content.clear();
@@ -88,7 +98,7 @@ void Document::addCharacter(char32_t character) {
     auto glyphIdx = font->getGlyphForChar(character);
     Glyph glyph {
         {
-            .width = font->getGlyphInfo(glyphIdx).width,
+            .width = font->getGlyphInfo(glyphIdx).advanceX*1000.0f,
             .height = font->getGlyphInfo(glyphIdx).height
         },
         /*.charcode =*/ character,
@@ -101,7 +111,7 @@ void Document::addWhitespace() {
     if (mode == Mode::RestHorizMode || mode == Mode::UnrestHorizMode) {
         /** TODO: insert correct glue **/
         auto& hbox = std::get<HBox>(boxes.top());
-        hbox.content.push_back(Glue(10.0f));
+        hbox.content.push_back(Glue(300.0f));
     }
 }
 

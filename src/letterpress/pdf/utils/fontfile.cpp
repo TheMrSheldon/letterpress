@@ -19,11 +19,13 @@ static void initFreetype() {
 	}
 }
 
-FontFile::FontFile(FontFile&& other) : face(std::move(other.face)), hasKerningInfo(other.hasKerningInfo) {
+FontFile::FontFile(FontFile&& other)
+		: path(std::move(other.path)), face(std::move(other.face)), hasKerningInfo(other.hasKerningInfo) {
 	other.face = nullptr;
+	other.path = "";
 }
 
-FontFile::FontFile(std::string path, std::string afmPath) {
+FontFile::FontFile(std::filesystem::path path, std::filesystem::path afmPath) : path(path) {
 	initFreetype();
 	auto error = FT_New_Face(library, path.c_str(), 0, &face);
 	if (error) {
@@ -64,6 +66,8 @@ FontFile& FontFile::operator=(FontFile&& other) {
 	destroy();
 	face = std::move(other.face);
 	other.face = nullptr;
+	path = other.path;
+	other.path = "";
 	hasKerningInfo = other.hasKerningInfo;
 	return *this;
 }
@@ -73,6 +77,11 @@ void FontFile::destroy() noexcept {
 		return;
 	FT_Done_Face(face);
 	face = nullptr;
+	path = "";
+}
+
+std::filesystem::path FontFile::getPath() const noexcept {
+	return path;
 }
 
 std::string FontFile::getFamilyName() const noexcept {
@@ -106,7 +115,7 @@ FontFile::GlyphInfo FontFile::getGlyphInfo(unsigned glyph) const noexcept {
 	return {
 		.advanceX = face->glyph->advance.x * scale,
 		.width = face->glyph->metrics.width,
-		.height = face->glyph->metrics.width,
+		.height = face->glyph->metrics.height,
 	};
 }
 

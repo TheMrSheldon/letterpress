@@ -1,7 +1,6 @@
 #pragma once
 
 #include "font_descriptor.hpp"
-#include "utils/fontfile.hpp"
 
 #include <qpdf/QPDFObjectHandle.hh>
 
@@ -11,6 +10,9 @@
 
 namespace lp::pdf::utils {
 	class Resources;
+
+	class FontFile;
+	using FontFilePtr = std::shared_ptr<FontFile>;
 }
 
 namespace lp::pdf {
@@ -21,7 +23,7 @@ namespace lp::pdf {
 		friend PDF;
 	private:
 		PDF& pdf;
-		utils::FontFile file;
+		utils::FontFilePtr file;
 		QPDFObjectHandle handle;
 		FontDescriptor descriptor;
 		std::vector<unsigned> subsetGlyphs;
@@ -32,7 +34,7 @@ namespace lp::pdf {
 		/** 
 		 * @brief Creates a new font object. Do not call this directly, use PDF::addFont instead!
 		 **/
-		Font(PDF& pdf, std::string path, std::string afmPath = "");
+		Font(PDF& pdf, utils::FontFilePtr file);
 
 		unsigned getGlyphForChar(char c) const;
 		float getKerning(unsigned leftGlyph, unsigned rightGlyph) const;
