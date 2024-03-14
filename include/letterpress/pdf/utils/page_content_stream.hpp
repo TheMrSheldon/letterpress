@@ -28,8 +28,6 @@ namespace lp::pdf::utils {
 
 		bool inTextMode;
 
-		GraphicsState& getGraphicsState() noexcept;
-
 		QPDFObjectHandle& getHandle();
 	public:
 		PageContentStream(Page& page, QPDFObjectHandle handle);
@@ -38,6 +36,7 @@ namespace lp::pdf::utils {
 
 		PageContentStream& saveGraphicsState();
 		PageContentStream& restoreGraphicsState();
+		GraphicsState& getGraphicsState() noexcept;
 
 		PageContentStream& beginText();
 		PageContentStream& endText();

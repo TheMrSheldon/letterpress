@@ -48,7 +48,10 @@ FontFile::FontFile(std::filesystem::path path, std::filesystem::path afmPath) : 
 	FT_Set_Char_Size(face, 0, 1, 0, 0);
 	std::cout << "Height: " << face->size->metrics.height << std::endl;
 	std::cout << "X Scale: " << face->size->metrics.x_scale << std::endl;
+	std::cout << "Y Scale: " << face->size->metrics.y_scale << std::endl;
 	std::cout << "X Pixels Per EM: " << face->size->metrics.x_ppem << std::endl;
+	std::cout << "Y Pixels Per EM: " << face->size->metrics.y_ppem << std::endl;
+	std::cout << "EM Size: " << face->units_per_EM << std::endl;
 	for (int i = 0; i < face->num_charmaps; i++) {
 		auto charmap = face->charmaps[i];
 		std::cout << '[' << i << ']' << charmap->encoding_id << ", " << charmap->platform_id << std::endl;
@@ -110,7 +113,7 @@ FontFile::GlyphInfo FontFile::getGlyphInfo(unsigned glyph) const noexcept {
 	if (!FT_IS_SCALABLE(face)) {
 		scale = 1.0f / (float)face->size->metrics.x_scale;
 	}*/
-	/** TODO: why does this seem to work? */
+	/** \todo why does this seem to work? */
 	auto scale = 1.0f/1000.0f * (face->size->metrics.x_scale / 4194.0f);/// (float)face->size->metrics.x_scale; //1.0f/64.0f * 1.0f/ (float)face->size->metrics.x_scale;
 	return {
 		.advanceX = face->glyph->advance.x * scale,
@@ -120,7 +123,7 @@ FontFile::GlyphInfo FontFile::getGlyphInfo(unsigned glyph) const noexcept {
 }
 
 // https://freetype.org/freetype2/docs/tutorial/step2.html
-float FontFile::getKerning(char left, char right) const noexcept {
+float FontFile::getKerning(char32_t left, char32_t right) const noexcept {
 	if (!hasKerningInfo) {
 		return 0;
 	}

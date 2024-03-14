@@ -28,6 +28,7 @@ namespace lp::pdf::utils {
 		}
 
 		void write(std::string str) noexcept {
+			/** \todo escape parenthesis **/
 			content << StringStartChar << str << StringEndChar << SepChar;
 		}
 		
@@ -36,19 +37,13 @@ namespace lp::pdf::utils {
 		}
 		
 		void write(float num) noexcept {
-			content << num << ' ';
+			content << num << SepChar;
 		}
 		
 		void write(lp::pdf::Array array) noexcept {
 			content << ArrayStartChar;
-			for (const auto& element : array.get()) {
-				if (std::holds_alternative<std::string>(element))
-					write(std::get<std::string>(element));
-				else if (std::holds_alternative<float>(element))
-					write(std::get<float>(element));
-				else
-					throw std::runtime_error("Unsupported type");
-			}
+			for (const auto& element : array.get())
+				std::visit([this](auto e) { write(e); }, element);
 			content << ArrayEndChar << SepChar;
 		}
 

@@ -39,7 +39,9 @@ public:
 		engine.init();
 		scriptctx = std::move(engine.createContext());
 		/** \todo remove hardcoded font **/
-		auto font = std::make_shared<lp::pdf::utils::FontFile>("res/fonts/computer-modern/cmunrm.ttf");
+		// auto font = std::make_shared<lp::pdf::utils::FontFile>("res/fonts/computer-modern/cmunrm.ttf");
+		// auto font = std::make_shared<lp::pdf::utils::FontFile>("res/fonts/domine/Domine-Regular.ttf");
+		auto font = std::make_shared<lp::pdf::utils::FontFile>("res/fonts/futura-renner/FuturaRenner-Light.otf");
 		document.pushFont(font);
 	}
 

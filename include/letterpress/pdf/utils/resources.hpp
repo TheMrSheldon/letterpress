@@ -15,9 +15,11 @@ namespace lp::pdf::utils {
 		QPDFObjectHandle fonts;
 
 		QPDFObjectHandle& getHandle();
+
+		// void lp::pdf::Identifier add();
 	public:
 		Resources();
 
-		Identifier addFont(Font& font);
+		lp::pdf::Identifier addFont(Font& font);
 	};
 }

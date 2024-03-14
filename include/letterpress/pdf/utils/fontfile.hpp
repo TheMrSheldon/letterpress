@@ -43,7 +43,7 @@ namespace lp::pdf::utils {
 		GlyphInfo getGlyphInfo(unsigned glyph) const noexcept;
 
 		bool containsChar(char c) const noexcept;
-		float getKerning(char left, char right) const noexcept;
+		float getKerning(char32_t left, char32_t right) const noexcept;
 	};
 
 }

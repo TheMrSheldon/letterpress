@@ -1,6 +1,7 @@
 #include <letterpress/pdf/pdfdriver.hpp>
 
 #include <letterpress/pdf/page.hpp>
+#include <letterpress/utils/overloaded.hpp>
 
 using namespace lp;
 using namespace lp::pdf;
@@ -35,12 +36,9 @@ std::string cpp20_codepoint_to_utf8(char32_t cp) // C++20 Sandard
 }
 
 
-template<class... Ts>
-struct overloaded : Ts... { using Ts::operator()...; };
-
 void PDFDriver::writeVBox(lp::pdf::Page& page, const lp::doc::VBox& vbox) {
 	for (auto&& elem : vbox.content) {
-		std::visit(overloaded{
+		std::visit(lp::utils::overloaded{
 			[this, &page](const lp::doc::VBox& vbox) { writeVBox(page, vbox); },
 			[this, &page](const lp::doc::HBox& hbox) { writeHBox(page, hbox); },
 			[this, &page](const lp::doc::Glue& glue) { /** \todo implement **/ }
@@ -53,19 +51,31 @@ void PDFDriver::writeHBox(lp::pdf::Page& page, const lp::doc::HBox& hbox) {
 	lp::pdf::Array array;
 	std::string text;
 	float width = 0;
+	/** \todo this code should be more readable**/
 	for (auto&& he : hbox.content) {
 		if (const auto val = std::get_if<lp::doc::Glyph>(&he)) {
+			auto& font = pdf.registerFont(val->font);
+			bool fontChange = stream.getGraphicsState().font != &font;
+			if (fontChange) {
+				if (!text.empty()) {
+					/** Push text **/
+					array.append(text);
+					text = "";
+					width = 0;
+				}
+				/** Change font **/
+				stream.setFont(font, 12);
+			}
 			text += cpp20_codepoint_to_utf8(val->charcode);
 			width += val->width;
 		} else if (const auto val = std::get_if<lp::doc::Glue>(&he)) {
-			array.append(text);
-			// The number shall be expressed in thousandths of a unit of text space
-			// (PDF 2.0 Table 107: Text-showing operators)
-			//array.append(-width/1000-val->idealwidth*100);
+			if (!text.empty()) {
+				array.append(text);
+				text = "";
+				width = 0;
+			}
 			array.append(-val->idealwidth);
-			text = "";
-			width = 0;
-		} else {
+		} else { /** \todo add kerning support **/
 			throw std::runtime_error("Unexpected datatype");
 		}
 	}
@@ -80,16 +90,9 @@ void PDFDriver::shipout(const lp::doc::VBox& page) {
 	int width = (int)pdfpage.mmToUserSpace(page.width);
 	int height = (int)pdfpage.mmToUserSpace(page.height);
     pdfpage.setMediaBox(0, 0, width, height);
-
-    /*auto& font1 = pdf.addFont("res/fonts/computer-modern/cmunrm.ttf");
-	auto& font2 = pdf.addFont("res/fonts/LatinmodernmathRegular.otf");
-	auto& font3 = pdf.addFont("res/fonts/baskervaldx/type1/Baskervaldx-Reg.pfb", "res/fonts/baskervaldx/afm/Baskervaldx-Reg.afm");*/
-	auto fontfile = std::make_shared<utils::FontFile>("res/fonts/computer-modern/cmunrm.ttf");
-	auto font1 = pdf.registerFont(fontfile);
 	
 	auto& stream = pdfpage.getContentStream();
-	stream.setFont(font1, 12);
-	stream.beginText().setTextLeading(24).moveText(72, height-72);
+	stream.beginText().moveText(72, height-72);
 	writeVBox(pdfpage, page);
 	stream.endText();
 }

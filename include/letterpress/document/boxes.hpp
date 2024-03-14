@@ -19,6 +19,8 @@ namespace lp::doc {
 		std::shared_ptr<lp::pdf::utils::FontFile> font;
 	};
 
+	struct Kerning : public Box {};
+
 	/** http://www.eprg.org/G53DOC/pdfs/knuth-plass-breaking.pdf **/
 	struct Glue {
 		/** Typically: 1/3 em **/
@@ -44,7 +46,8 @@ namespace lp::doc {
 			HBox,
 			VBox,
 			Glyph,
-			Glue
+			Glue,
+			Kerning
 		>;
 
 		std::vector<Elem> content;

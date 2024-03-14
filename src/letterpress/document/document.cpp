@@ -2,13 +2,12 @@
 
 #include <letterpress/document/boxes.hpp>
 #include <letterpress/driver.hpp>
+#include <letterpress/utils/overloaded.hpp>
 
 #include <iostream>
 
 using namespace lp::doc;
-
-template<class... Ts>
-struct overloaded : Ts... { using Ts::operator()...; };
+using namespace lp::utils;
 
 Document::Document(lp::Driver& driver) noexcept : logger(lp::log::getLogger("DocProcessor")), driver(driver) {
     /** \todo Non-hardcoded width and height **/
@@ -105,6 +104,17 @@ void Document::addCharacter(char32_t character) {
         /*.font =*/ font
     };
     auto& hbox = std::get<HBox>(boxes.top());
+
+    /** Apply kerning if the last element is also a glyph and kerning should be added **/
+    if (!hbox.content.empty()) {
+        auto& prev = hbox.content.back();
+        if (auto* pglyph = std::get_if<Glyph>(&prev)) {
+            auto kerning = font->getKerning(pglyph->charcode, character);
+            if (kerning != 0)// Should this instead compare with some epsilon?
+                hbox.content.push_back(Kerning{{.width=kerning}});
+        }
+    }
+
     hbox.content.push_back(glyph);
 }
 void Document::addWhitespace() {
