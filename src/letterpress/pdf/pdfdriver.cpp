@@ -8,41 +8,40 @@ using namespace lp::pdf;
 
 PDFDriver::PDFDriver(std::filesystem::path outfile) : outfile(outfile), pdf() {}
 
-PDFDriver::~PDFDriver() {
-    pdf.save(outfile);
-}
+PDFDriver::~PDFDriver() { pdf.save(outfile); }
 
-inline
-std::string cpp20_codepoint_to_utf8(char32_t cp) // C++20 Sandard
+inline std::string cpp20_codepoint_to_utf8(char32_t cp) // C++20 Sandard
 {
-    using codecvt_32_8_type = std::codecvt<char32_t, char8_t, std::mbstate_t>;
+	using codecvt_32_8_type = std::codecvt<char32_t, char8_t, std::mbstate_t>;
 
-    struct codecvt_utf8
-    : public codecvt_32_8_type
-        { codecvt_utf8(std::size_t refs = 0): codecvt_32_8_type(refs) {} };
+	struct codecvt_utf8 : public codecvt_32_8_type {
+		codecvt_utf8(std::size_t refs = 0) : codecvt_32_8_type(refs) {}
+	};
 
-    char8_t utf8[4];
-    char8_t* end_of_utf8;
+	char8_t utf8[4];
+	char8_t* end_of_utf8;
 
-    char32_t const* from = &cp;
+	char32_t const* from = &cp;
 
-    std::mbstate_t mbs;
-    codecvt_utf8 ccv;
+	std::mbstate_t mbs;
+	codecvt_utf8 ccv;
 
-    if(ccv.out(mbs, from, from + 1, from, utf8, utf8 + 4, end_of_utf8))
-        throw std::runtime_error("bad conversion");
+	if (ccv.out(mbs, from, from + 1, from, utf8, utf8 + 4, end_of_utf8))
+		throw std::runtime_error("bad conversion");
 
-    return {reinterpret_cast<char*>(utf8), reinterpret_cast<char*>(end_of_utf8)};
+	return {reinterpret_cast<char*>(utf8), reinterpret_cast<char*>(end_of_utf8)};
 }
-
 
 void PDFDriver::writeVBox(lp::pdf::Page& page, const lp::doc::VBox& vbox) {
 	for (auto&& elem : vbox.content) {
-		std::visit(lp::utils::overloaded{
-			[this, &page](const lp::doc::VBox& vbox) { writeVBox(page, vbox); },
-			[this, &page](const lp::doc::HBox& hbox) { writeHBox(page, hbox); },
-			[this, &page](const lp::doc::Glue& glue) { /** \todo implement **/ }
-		}, elem);
+		std::visit(
+				lp::utils::overloaded{
+						[this, &page](const lp::doc::VBox& vbox) { writeVBox(page, vbox); },
+						[this, &page](const lp::doc::HBox& hbox) { writeHBox(page, hbox); },
+						[this, &page](const lp::doc::Glue& glue) { /** \todo implement **/ }
+				},
+				elem
+		);
 	}
 }
 
@@ -82,17 +81,17 @@ void PDFDriver::writeHBox(lp::pdf::Page& page, const lp::doc::HBox& hbox) {
 	if (!text.empty())
 		array.append(text);
 	/** \todo remove hardcoded 1.2*lineskip**/
-	stream.getStreamWriter().showTextAdjusted(array).moveText(0, (-12)*1.2);
+	stream.getStreamWriter().showTextAdjusted(array).moveText(0, (-12) * 1.2);
 }
 
 void PDFDriver::shipout(const lp::doc::VBox& page) {
-    auto& pdfpage = pdf.addPage();
+	auto& pdfpage = pdf.addPage();
 	int width = (int)pdfpage.mmToUserSpace(page.width);
 	int height = (int)pdfpage.mmToUserSpace(page.height);
-    pdfpage.setMediaBox(0, 0, width, height);
-	
+	pdfpage.setMediaBox(0, 0, width, height);
+
 	auto& stream = pdfpage.getContentStream();
-	stream.beginText().moveText(72, height-72);
+	stream.beginText().moveText(72, height - 72);
 	writeVBox(pdfpage, page);
 	stream.endText();
 }

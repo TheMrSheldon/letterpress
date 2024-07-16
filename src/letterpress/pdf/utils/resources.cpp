@@ -9,19 +9,18 @@ Resources::Resources() : handle(QPDFObjectHandle::newDictionary()), fonts(QPDFOb
 	handle.replaceKey("/Font", fonts);
 }
 
-QPDFObjectHandle& Resources::getHandle() {
-	return handle;
-}
+QPDFObjectHandle& Resources::getHandle() { return handle; }
 
 Identifier Resources::addFont(Font& font) {
 	auto dict = fonts.getDictAsMap();
 	for (auto& [key, value] : dict) {
-		if (value.getObjectID() == font.getHandle().getObjectID()) {
+		if (value.getObjectPtr() == font.getHandle().getObjectPtr()) {
 			return Identifier(key.substr(1));
 		}
 	}
 	int number = 1;
-	for (;fonts.hasKey("/F"+std::to_string(number)); ++number);
-	fonts.replaceKey("/F"+std::to_string(number), font.getHandle());
-	return Identifier("F"+std::to_string(number));
+	for (; fonts.hasKey("/F" + std::to_string(number)); ++number)
+		;
+	fonts.replaceKey("/F" + std::to_string(number), font.getHandle());
+	return Identifier("F" + std::to_string(number));
 }

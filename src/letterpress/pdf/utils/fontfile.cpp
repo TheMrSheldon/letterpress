@@ -19,31 +19,36 @@ static void initFreetype() {
 	}
 }
 
+FontFile::FontFile() : logger(lp::log::getLogger("Font")) {}
+
 FontFile::FontFile(FontFile&& other)
-		: path(std::move(other.path)), face(std::move(other.face)), hasKerningInfo(other.hasKerningInfo) {
+		: logger(lp::log::getLogger("Font")), path(std::move(other.path)), face(std::move(other.face)),
+		  hasKerningInfo(other.hasKerningInfo) {
 	other.face = nullptr;
 	other.path = "";
 }
 
-FontFile::FontFile(std::filesystem::path path, std::filesystem::path afmPath) : path(path) {
+FontFile::FontFile(std::filesystem::path path, std::filesystem::path afmPath)
+		: logger(lp::log::getLogger("Font")), path(path) {
+	logger->trace("Loading {}", path.c_str());
 	initFreetype();
 	auto error = FT_New_Face(library, path.c_str(), 0, &face);
 	if (error) {
-		std::cout << "Error opening font file: " << error << std::endl;
+		logger->error("Error opening font file: {}", error);
 		auto msg = FT_Error_String(error);
-		std::cout << (msg? msg:"--") << std::endl;
+		std::cout << (msg ? msg : "--") << std::endl;
 	}
 	if (!afmPath.empty()) {
 		error = FT_Attach_File(face, afmPath.c_str());
 		if (error) {
 			std::cout << "Error opening font attachment: " << error << std::endl;
 			auto msg = FT_Error_String(error);
-			std::cout << (msg? msg:"--") << std::endl;
+			std::cout << (msg ? msg : "--") << std::endl;
 		}
 	}
 	hasKerningInfo = FT_HAS_KERNING(face);
-	std::cout << "Kerning Info: " << (hasKerningInfo?'t':'f') << std::endl;
-	std::cout << "Scalable: " << (FT_IS_SCALABLE(face)?'t':'f') << std::endl;
+	std::cout << "Kerning Info: " << (hasKerningInfo ? 't' : 'f') << std::endl;
+	std::cout << "Scalable: " << (FT_IS_SCALABLE(face) ? 't' : 'f') << std::endl;
 	FT_Select_Charmap(face, FT_ENCODING_UNICODE);
 	FT_Set_Char_Size(face, 0, 1, 0, 0);
 	std::cout << "Height: " << face->size->metrics.height << std::endl;
@@ -61,9 +66,7 @@ FontFile::FontFile(std::filesystem::path path, std::filesystem::path afmPath) : 
 	}
 }
 
-FontFile::~FontFile() {
-	destroy();
-}
+FontFile::~FontFile() { destroy(); }
 
 FontFile& FontFile::operator=(FontFile&& other) {
 	destroy();
@@ -83,13 +86,9 @@ void FontFile::destroy() noexcept {
 	path = "";
 }
 
-std::filesystem::path FontFile::getPath() const noexcept {
-	return path;
-}
+std::filesystem::path FontFile::getPath() const noexcept { return path; }
 
-std::string FontFile::getFamilyName() const noexcept {
-	return face->family_name;
-}
+std::string FontFile::getFamilyName() const noexcept { return face->family_name; }
 
 short FontFile::getAscent() const noexcept { return face->ascender; }
 short FontFile::getDescent() const noexcept { return face->descender; }
@@ -100,9 +99,7 @@ void FontFile::getBoundingBox(double& xmin, double& ymin, double& xmax, double& 
 	ymax = face->bbox.yMax;
 }
 
-unsigned FontFile::getGlyphForChar(char32_t c) const noexcept {
-	return FT_Get_Char_Index(face, c);
-}
+unsigned FontFile::getGlyphForChar(char32_t c) const noexcept { return FT_Get_Char_Index(face, c); }
 
 FontFile::GlyphInfo FontFile::getGlyphInfo(unsigned glyph) const noexcept {
 	auto error = FT_Load_Glyph(face, glyph, FT_LOAD_NO_BITMAP | FT_LOAD_NO_SCALE);
@@ -114,11 +111,13 @@ FontFile::GlyphInfo FontFile::getGlyphInfo(unsigned glyph) const noexcept {
 		scale = 1.0f / (float)face->size->metrics.x_scale;
 	}*/
 	/** \todo why does this seem to work? */
-	auto scale = 1.0f/1000.0f * (face->size->metrics.x_scale / 4194.0f);/// (float)face->size->metrics.x_scale; //1.0f/64.0f * 1.0f/ (float)face->size->metrics.x_scale;
+	auto scale = 1.0f / 1000.0f *
+				 (face->size->metrics.x_scale / 4194.0f
+				 ); /// (float)face->size->metrics.x_scale; //1.0f/64.0f * 1.0f/ (float)face->size->metrics.x_scale;
 	return {
-		.advanceX = face->glyph->advance.x * scale,
-		.width = face->glyph->metrics.width,
-		.height = face->glyph->metrics.height,
+			.advanceX = face->glyph->advance.x * scale,
+			.width = face->glyph->metrics.width,
+			.height = face->glyph->metrics.height,
 	};
 }
 

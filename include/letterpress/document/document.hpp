@@ -56,7 +56,7 @@ namespace lp::doc {
 	public:
 		Document(lp::Driver& driver) noexcept;
 
-		void pushFont(std::shared_ptr<lp::pdf::utils::FontFile> font) noexcept;
+		void pushFont(std::string font) noexcept;
 		void popFont() noexcept;
 		void addCharacter(char32_t character);
 		void addWhitespace();

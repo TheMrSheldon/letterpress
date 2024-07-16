@@ -4,12 +4,18 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 class asIScriptEngine;
 class asIScriptContext;
 
+namespace lp::doc {
+	class Document;
+}
+
 namespace lp::script {
 	class Module;
+	class ScriptEngine;
 
 	class Context final {
 	private:
@@ -27,5 +33,7 @@ namespace lp::script {
 		Context& operator=(Context&& other);
 
 		std::shared_ptr<lp::doc::IDocClass> instantiateDocumentClass(std::string name, Module& module);
+		bool invokeMethod(std::string name, std::vector<std::string> arguments, Module& module);
+		bool invokeMethod(std::string name, std::vector<std::string> arguments, lp::doc::Document& doc, ScriptEngine& engine);
 	};
 }

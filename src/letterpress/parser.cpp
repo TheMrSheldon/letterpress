@@ -17,6 +17,25 @@ using namespace lp::script;
 
 using path = std::filesystem::path;
 
+// https://en.wikipedia.org/wiki/UTF-8#Encoding
+/**
+ * \brief Extracts the first UTF-8 codepoint from the given string
+ */
+inline char32_t from_utf8(std::string str) {
+	uint8_t* bytes = (uint8_t*)str.c_str();
+	if (bytes[0] < 0b10000000u) { /** 1 Byte UTF-8 **/
+		return bytes[0];
+	} else if (bytes[0] < 0b11100000u) { /** 2 Byte UTF-8 **/
+		return (bytes[0] & 0b00011111u) << 6 | (bytes[1] & 0b00111111u);
+	} else if (bytes[0] < 0b11110000u) { /** 3 Byte UTF-8 **/
+		return (bytes[0] & 0b00001111u) << 12 | (bytes[1] & 0b00111111u) << 6 | (bytes[2] & 0b00111111u);
+	} else if (bytes[0] < 0b11111000u) { /** 4 Byte UTF-8 **/
+		return (bytes[0] & 0b00000111u) << 18 | (bytes[1] & 0b00111111u) << 12 | (bytes[2] & 0b00111111u) << 6 |
+			   (bytes[3] & 0b00111111u);
+	}
+	throw std::runtime_error("UTF-8 codepoint out of range");
+}
+
 class Visitor final : public lpparserBaseVisitor {
 private:
 	using DoctypeArgs = std::map<std::string, std::any>;
@@ -36,13 +55,16 @@ private:
 public:
 	Visitor(lp::Driver& driver, std::vector<path> includeDirs)
 			: logger(lp::log::getLogger("parser")), document({driver}), includeDirs(includeDirs), scriptctx(nullptr) {
-		engine.init();
+		engine.init(&document);
 		scriptctx = std::move(engine.createContext());
 		/** \todo remove hardcoded font **/
 		// auto font = std::make_shared<lp::pdf::utils::FontFile>("res/fonts/computer-modern/cmunrm.ttf");
 		// auto font = std::make_shared<lp::pdf::utils::FontFile>("res/fonts/domine/Domine-Regular.ttf");
-		auto font = std::make_shared<lp::pdf::utils::FontFile>("res/fonts/futura-renner/FuturaRenner-Light.otf");
-		document.pushFont(font);
+		// auto font = std::make_shared<lp::pdf::utils::FontFile>("res/fonts/futura-renner/FuturaRenner-Light.otf");
+		// auto font = std::make_shared<lp::pdf::utils::FontFile>("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf");
+		// auto font = std::make_shared<lp::pdf::utils::FontFile>("/usr/share/fonts/truetype/liberation2/LiberationSerif-Regular.ttf");
+		// document.pushFont(font);
+		document.pushFont("DejaVuSans");
 	}
 
 	virtual ~Visitor() {
@@ -85,6 +107,7 @@ public:
 		}
 		auto doctypename = ctx->IDENT()->getText();
 		logger->trace("Loading document type {}", doctypename);
+		/** \todo remove hardcoded module to load docclass from **/
 		doctype = scriptctx.instantiateDocumentClass(doctypename, loadedModules[0]);
 		if (doctype == nullptr) {
 			logger->critical("Document type {} was not found", doctypename);
@@ -124,19 +147,34 @@ public:
 	}
 
 	virtual std::any visitContent_part(lpparser::Content_partContext* ctx) override {
-		/** \todo distinguish character, whitespace and new-paragraph*/
 		switch (ctx->getStart()->getType()) {
 		case lpparser::SPACE:
 			document.addWhitespace();
 			break;
-		case lpparser::CHARACTER:
-			/** \todo iterate codepoints and add appropriate kerning etc. **/
-			for (auto c : ctx->getText())
-				document.addCharacter(c);
+		case lpparser::CHARACTER: {
+			char32_t character = from_utf8(ctx->getText());
+			document.addCharacter(character);
 			break;
+		}
 		case lpparser::PAR:
 			document.writeParagraph();
 			break;
+		case lpparser::COMMAND: {
+			std::string command = ctx->COMMAND()->getText().substr(1);
+			std::vector<std::string> params;
+			for (auto&& param : ctx->param()) {
+				auto tmp = param->getText();
+				params.push_back(tmp.substr(1, tmp.length() - 2));
+			}
+			/** \todo: don't hardcode the module to load from **/
+			if (scriptctx.invokeMethod(command, params, loadedModules[0])) {
+			} else if (scriptctx.invokeMethod(command, params, document, engine)) {
+			} else {
+				logger->critical("Could not invoke {}", command);
+				abort(); /** \todo more graceful shutdown **/
+			}
+			break;
+		}
 		default:
 			logger->critical(
 					"Unexpected token type in content: {}. This is a bug and should never happen.",
@@ -174,6 +212,6 @@ Document lp::Parser::parse(std::istream& input, std::vector<path> includeDirs) n
 	auto stop = std::chrono::steady_clock::now();
 	auto time = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 	logger->info("Parsing done (took {} ms)", time.count());
-	
+
 	return doc;
 }

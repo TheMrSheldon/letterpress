@@ -4,15 +4,15 @@
 #include <letterpress/pdf/pdfdriver.hpp>
 #include <letterpress/scriptengine/scriptengine.hpp>
 
-#include <qpdf/QPDF.hh>
 #include <angelscript.h>
+#include <qpdf/QPDF.hh>
 
 #include <CLI/CLI.hpp>
 
 #include <assert.h>
-#include <iostream>
 #include <format>
 #include <fstream>
+#include <iostream>
 #include <memory>
 #include <optional>
 
@@ -64,18 +64,6 @@ static void runPDFCommand(const PDFAppArgs args) {
 		logger->debug("    {}", dir);
 	lp::PDFDriver driver(output);
 	lp::Parser parser(driver);
-	/**For testing purposes only*/
-	/*std::vector<lp::doc::Document::HElem> vec;
-	vec.push_back((uint32_t)'H');
-	vec.push_back((uint32_t)'e');
-	lp::Page page {
-		/** A4 page **/
-		/*.width = 210,
-		.height = 297,
-		.content = vec
-	};
-	driver.shipout(page);*/
-	/***/
 	auto document = parser.parse(args.input, args.includeDirs);
 }
 
@@ -84,7 +72,7 @@ static void runCompileCommand(CompileAppArgs args) {
 	std::filesystem::path output = args.output.value_or("a.lpbin");
 
 	ScriptEngine engine;
-	engine.init();
+	engine.init(nullptr);
 	auto module = engine.createModule(output.filename(), args.inputs);
 	module.saveToFile(output);
 	engine.deinit();
@@ -110,9 +98,7 @@ int main(int argc, char* argv[]) {
 	PDFAppArgs pdfArgs;
 	CLI::App& pdfApp = *app.add_subcommand("pdf", "TODO");
 	setupLoggerArgs(pdfApp, pdfArgs.logConf);
-	pdfApp.add_option("input", pdfArgs.input, "The file to be processed")
-		->check(CLI::ExistingFile)
-		->required();
+	pdfApp.add_option("input", pdfArgs.input, "The file to be processed")->check(CLI::ExistingFile)->required();
 	pdfApp.add_option("-o,--out", pdfArgs.output, "The output path.");
 	pdfApp.add_option("-I", pdfArgs.includeDirs, "Include directories.")->allow_extra_args(false);
 	pdfApp.callback([&pdfArgs]() { runPDFCommand(pdfArgs); });
@@ -122,12 +108,12 @@ int main(int argc, char* argv[]) {
 	CLI::App& compileApp = *app.add_subcommand("compile", "TODO");
 	setupLoggerArgs(compileApp, compileArgs.logConf);
 	compileApp.add_option("input", compileArgs.inputs, "The files to be compiled")
-		->check(CLI::ExistingFile)
-		->required();
+			->check(CLI::ExistingFile)
+			->required();
 	compileApp.add_option("-o,--out", compileArgs.output, "The output path.");
 	compileApp.callback([&compileArgs]() { runCompileCommand(compileArgs); });
 
-    CLI11_PARSE(app, argc, argv);
+	CLI11_PARSE(app, argc, argv);
 
 	return 0;
 }

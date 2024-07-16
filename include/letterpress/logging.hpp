@@ -19,8 +19,8 @@ namespace lp::log {
 	void setVerbosity(Verbosity verbosity) noexcept;
 
 	/**
-	 * @brief Creates a new named logger instance with the given name or fetches an existing one associated with
-	 * the name.
+	 * @brief Creates a new named logger instance with the given name or fetches an existing one associated with the
+	 * name.
 	 * 
 	 * @param name The name of the the logger to be returned.
 	 * @return A logger with the specified name.

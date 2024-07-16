@@ -45,6 +45,8 @@ PAR                 : '\n\n' ;
 CNT_SPACE           : SPACE -> type(SPACE) ;
 BEG_INLINE_MATH     : '$' -> pushMode(M_MATH) ;
 BEG_DISPLAY_MATH    : '$$' -> pushMode(M_MATH) ;
+CNT_LBRACE              : '{' -> type(LBRACE) ;
+CNT_RBRACE              : '}' -> type(RBRACE) ;
 CHARACTER           : . ;
 
 mode M_MATH;

@@ -4,48 +4,43 @@
 #include <scriptbuilder/scriptbuilder.h>
 #include <scriptstdstring/scriptstdstring.h>
 
+#include <letterpress/document/document.hpp>
 #include <letterpress/document/idocclass.hpp>
 
 using namespace lp::script;
 
+ScriptEngine::ScriptEngine() : angelscript(asCreateScriptEngine()) {}
 
-void MessageCallback(const asSMessageInfo* msg, void* param) {
-	const char* type = "ERR ";
-	if (msg->type == asMSGTYPE_WARNING)
-		type = "WARN";
-	else if (msg->type == asMSGTYPE_INFORMATION)
-		type = "INFO";
-	printf("%s (%d, %d) : %s : %s\n", msg->section, msg->row, msg->col, type, msg->message);
-}
-
-
-ScriptEngine::ScriptEngine() : angelscript(asCreateScriptEngine()) {
-	
-}
-
-ScriptEngine::ScriptEngine(ScriptEngine&& other) : angelscript(other.angelscript) {
-	other.angelscript = nullptr;
-}
+ScriptEngine::ScriptEngine(ScriptEngine&& other) : angelscript(other.angelscript) { other.angelscript = nullptr; }
 
 ScriptEngine::~ScriptEngine() {
 	if (angelscript != nullptr)
 		angelscript->ShutDownAndRelease();
 }
 
+#include <iostream>
 
-static void println(std::string string) {
-	printf("%s\n", string.c_str());
-}
-
-
-bool ScriptEngine::init() {
-	int r = angelscript->SetMessageCallback(asFUNCTION(MessageCallback), 0, asCALL_CDECL);
+bool ScriptEngine::init(lp::doc::Document* doc) {
+	int r = angelscript->SetMessageCallback(asMETHOD(lp::script::ScriptEngine, logCallback), this, asCALL_THISCALL);
 	if (r != 0)
 		return false;
 	RegisterStdString(angelscript);
 
 	r = angelscript->RegisterInterface("IDocumentType");
-	angelscript->RegisterGlobalFunction("void println(string)", asFUNCTION(println), asCALL_CDECL);
+	assert(r == 0);
+	if (doc != nullptr) {
+		r = angelscript->RegisterGlobalFunction(
+				"void pushFont(string)", asMETHOD(lp::doc::Document, pushFont), asCALL_THISCALL_ASGLOBAL, doc
+		);
+		assert(r == 0);
+		r = angelscript->RegisterGlobalFunction(
+				"void popFont()", asMETHOD(lp::doc::Document, popFont), asCALL_THISCALL_ASGLOBAL, doc
+		);
+		assert(r == 0);
+	} else {
+		r = angelscript->RegisterGlobalFunction("void pushFont(string)", asSFuncPtr(), asCALL_CDECL);
+		r = angelscript->RegisterGlobalFunction("void popFont()", asSFuncPtr(), asCALL_CDECL);
+	}
 	return true;
 }
 
@@ -63,7 +58,7 @@ Context ScriptEngine::createContext() {
 
 Module ScriptEngine::createModule(std::string name, std::vector<std::filesystem::path> files) {
 	CScriptBuilder builder;
-	auto r = builder.StartNewModule(angelscript, name.c_str()); 
+	auto r = builder.StartNewModule(angelscript, name.c_str());
 	if (r < 0)
 		throw std::runtime_error("Unrecoverable error while starting a new module.");
 	for (auto&& file : files) {
@@ -79,6 +74,20 @@ Module ScriptEngine::createModule(std::string name, std::vector<std::filesystem:
 	return Module(builder.GetModule());
 }
 
-Module ScriptEngine::loadModule(std::filesystem::path path) {
-	return Module::LoadFromFile(angelscript, path);
+Module ScriptEngine::loadModule(std::filesystem::path path) { return Module::LoadFromFile(angelscript, path); }
+
+void ScriptEngine::logCallback(const asSMessageInfo* msg, void* param) noexcept {
+	switch (msg->type) {
+	case asMSGTYPE_ERROR:
+		logger->error("{} ({}, {}) : {}", msg->section, msg->row, msg->col, msg->message);
+		break;
+	case asMSGTYPE_WARNING:
+		logger->warn("{} ({}, {}) : {}", msg->section, msg->row, msg->col, msg->message);
+		break;
+	case asMSGTYPE_INFORMATION:
+		logger->info("{} ({}, {}) : {}", msg->section, msg->row, msg->col, msg->message);
+		break;
+	default:
+		abort(); /** \todo more graceful pls **/
+	}
 }

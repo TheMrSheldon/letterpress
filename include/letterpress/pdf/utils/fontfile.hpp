@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../../logging.hpp"
+
 #include <filesystem>
 #include <inttypes.h>
 #include <string>
@@ -11,13 +13,14 @@ namespace lp::pdf::utils {
 
 	class FontFile final {
 	private:
+		lp::log::LoggerPtr logger;
 		struct GlyphInfo {
 			float advanceX;
 			float width, height;
 		};
 
 		std::filesystem::path path;
-		
+
 		FT_Face face;
 		bool hasKerningInfo;
 
@@ -25,6 +28,7 @@ namespace lp::pdf::utils {
 		FontFile& operator=(const FontFile& other) = delete;
 
 		void destroy() noexcept;
+
 	public:
 		FontFile();
 		FontFile(FontFile&& other);
@@ -46,4 +50,4 @@ namespace lp::pdf::utils {
 		float getKerning(char32_t left, char32_t right) const noexcept;
 	};
 
-}
+} // namespace lp::pdf::utils

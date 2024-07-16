@@ -7,4 +7,10 @@
 		"**/.antlr": true,
 		"build": true
 	},
+	"editor.formatOnSave": true,
+	"C_Cpp.codeAnalysis.clangTidy.enabled": true,
+	"C_Cpp.doxygen.generatedStyle": "/**",
+	"C_Cpp.codeAnalysis.clangTidy.args": [
+		"-p ${workspaceFolder}/build/compile_commands.json"
+	],
 }

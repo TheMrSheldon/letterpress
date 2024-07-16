@@ -1,4 +1,4 @@
-FROM ubuntu:23.04
+FROM ubuntu:24.04
 
 
 ########################################################################################################################
@@ -10,7 +10,7 @@ RUN apt-get update && \
 
 # Needed for the dev environment
 RUN apt-get update && \
-    apt-get -y install build-essential cppcheck flawfinder doxygen graphviz gdb
+    apt-get -y install build-essential cppcheck flawfinder doxygen graphviz gdb clang-tidy clang-format
 
 # Dependencies of libqpdf
 RUN apt-get update && \

@@ -23,7 +23,7 @@ array           : BEG_ARRAY (p_arg_val COMMA)* p_arg_val END_ARRAY
 content         : content_part*
                 ;
 content_part    : c_math
-                | COMMAND
+                | COMMAND param*
                 | PAR (SPACE | PAR)*
                 | SPACE+
                 | .+?       /* Should be removed in practice. Exists now to avoid syntax errors while implementing the grammar further*/
@@ -35,4 +35,6 @@ c_math_content  : M_TEXT
                 | COMMAND
                 | WORD
                 | NUMBER
+                ;
+param           : LBRACE .*? RBRACE
                 ;
