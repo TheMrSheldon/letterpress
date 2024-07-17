@@ -58,13 +58,7 @@ public:
 		engine.init(&document);
 		scriptctx = std::move(engine.createContext());
 		/** \todo remove hardcoded font **/
-		// auto font = std::make_shared<lp::pdf::utils::FontFile>("res/fonts/computer-modern/cmunrm.ttf");
-		// auto font = std::make_shared<lp::pdf::utils::FontFile>("res/fonts/domine/Domine-Regular.ttf");
-		// auto font = std::make_shared<lp::pdf::utils::FontFile>("res/fonts/futura-renner/FuturaRenner-Light.otf");
-		// auto font = std::make_shared<lp::pdf::utils::FontFile>("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf");
-		// auto font = std::make_shared<lp::pdf::utils::FontFile>("/usr/share/fonts/truetype/liberation2/LiberationSerif-Regular.ttf");
-		// document.pushFont(font);
-		document.pushFont("DejaVuSans");
+		document.pushFont("cmr12");
 	}
 
 	virtual ~Visitor() {

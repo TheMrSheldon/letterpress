@@ -1,0 +1,39 @@
+FROM ubuntu:24.04
+
+
+########################################################################################################################
+# Install Dependencies                                                                                                 #
+########################################################################################################################
+USER root
+RUN <<EOF
+apt-get update
+apt-get -y install g++-13 cmake git antlr4
+
+# Needed for the dev environment
+apt-get -y install build-essential cppcheck flawfinder doxygen graphviz gdb clang-tidy clang-format
+
+# Dependencies of libqpdf
+apt-get -y install zlib1g-dev libjpeg-dev
+EOF
+
+########################################################################################################################
+# Download Fonts                                                                                        #
+########################################################################################################################
+RUN <<EOF
+apt-get -y install wget
+# Computer Modern
+wget https://mirrors.ctan.org/fonts/cm/ps-type1/bakoma/ttf/cmr12.ttf -O /usr/share/fonts/cmr12.ttf
+wget https://mirrors.ctan.org/fonts/cm/ps-type1/bakoma/ttf/cmbx12.ttf -O /usr/share/fonts/cmbx12.ttf
+# Baskervaldx
+wget https://mirrors.ctan.org/fonts/baskervaldx/opentype/Baskervaldx-Reg.otf -O /usr/share/fonts/Baskervaldx-Reg.otf
+wget https://mirrors.ctan.org/fonts/baskervaldx/opentype/Baskervaldx-Bol.otf -O /usr/share/fonts/Baskervaldx-Bol.otf
+EOF
+
+########################################################################################################################
+# Create User                                                                                                          #
+########################################################################################################################
+# Change root Password to 1234
+RUN echo 'root:1234' | chpasswd
+# Create new user: "dev"
+RUN useradd -ms /bin/bash dev
+USER dev
