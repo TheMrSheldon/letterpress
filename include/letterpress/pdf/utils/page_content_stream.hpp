@@ -15,6 +15,7 @@ namespace lp::pdf {
 namespace lp::pdf::utils {
 	class PageContentStream final {
 		friend Page;
+
 	private:
 		Page& page;
 		ContentStreamWriter stream;
@@ -29,6 +30,7 @@ namespace lp::pdf::utils {
 		bool inTextMode;
 
 		QPDFObjectHandle& getHandle();
+
 	public:
 		PageContentStream(Page& page, QPDFObjectHandle handle);
 
@@ -47,8 +49,14 @@ namespace lp::pdf::utils {
 		PageContentStream& nextLine();
 		PageContentStream& setTextLeading(float leading);
 
+		/////////////////////////////
+		// Graphics Commands       //
+		/////////////////////////////
+		PageContentStream& drawRect(int posx, int posy, int width, int height);
+		PageContentStream& stroke();
+
 		void flush();
 
 		ContentStreamWriter& getStreamWriter() noexcept { return stream; }
 	};
-}
+} // namespace lp::pdf::utils

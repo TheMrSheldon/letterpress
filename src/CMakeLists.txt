@@ -5,8 +5,10 @@ add_library(letterpress)
 target_sources(letterpress PRIVATE
 	letterpress/logging.cpp
 	letterpress/parser.cpp
+	letterpress/document/boxes.cpp
 	letterpress/document/document.cpp
 	letterpress/document/hyphenation.cpp
+	letterpress/parser/parser.cpp
 	letterpress/pdf/constants.cpp
 	letterpress/pdf/font_descriptor.cpp
 	letterpress/pdf/font.cpp
@@ -36,7 +38,7 @@ target_link_libraries(letterpressexe letterpress)
 # Libraries
 ##########################################################################################
 # spdlog for logging
-FetchContent_Declare(spdlog GIT_REPOSITORY https://github.com/gabime/spdlog.git GIT_TAG v1.11.0)
+FetchContent_Declare(spdlog GIT_REPOSITORY https://github.com/gabime/spdlog.git GIT_TAG v1.14.1)
 FetchContent_MakeAvailable(spdlog)
 target_link_libraries(letterpress spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32>)
 
@@ -89,12 +91,12 @@ target_include_directories(letterpress PUBLIC ${ANTLR_LPGrammarLexer_OUTPUT_DIR}
 target_sources(letterpress PUBLIC ${ANTLR_LPGrammarLexer_CXX_OUTPUTS} ${ANTLR_LPGrammarParser_CXX_OUTPUTS})
 
 # QPDF
-FetchContent_Declare(QPDF GIT_REPOSITORY https://github.com/qpdf/qpdf.git GIT_TAG v11.9.0)
+FetchContent_Declare(QPDF GIT_REPOSITORY https://github.com/qpdf/qpdf.git GIT_TAG v11.9.1)
 FetchContent_MakeAvailable(QPDF)
 target_link_libraries(letterpress libqpdf)
 target_include_directories(letterpress PUBLIC ${QPDF_SOURCE_DIR}/include)
 
 # CLI11
-FetchContent_Declare(cli11 GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git GIT_TAG v2.3.2)
+FetchContent_Declare(cli11 GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git GIT_TAG v2.4.2)
 FetchContent_MakeAvailable(cli11)
 target_link_libraries(letterpressexe CLI11::CLI11)

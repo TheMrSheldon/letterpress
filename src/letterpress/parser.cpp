@@ -140,6 +140,16 @@ public:
 		return visitChildren(ctx);
 	}
 
+	void invokeCommand(std::string name, std::vector<std::string> args) {
+		/** \todo: don't hardcode the module to load from **/
+		if (scriptctx.invokeMethod(name, args, loadedModules[0])) {
+		} else if (scriptctx.invokeMethod(name, args, document, engine)) {
+		} else {
+			logger->critical("Could not invoke {}", name);
+			abort(); /** \todo more graceful shutdown **/
+		}
+	}
+
 	virtual std::any visitContent_part(lpparser::Content_partContext* ctx) override {
 		switch (ctx->getStart()->getType()) {
 		case lpparser::SPACE:
@@ -151,7 +161,7 @@ public:
 			break;
 		}
 		case lpparser::PAR:
-			document.writeParagraph();
+			invokeCommand("par", {});
 			break;
 		case lpparser::COMMAND: {
 			std::string command = ctx->COMMAND()->getText().substr(1);
@@ -160,13 +170,7 @@ public:
 				auto tmp = param->getText();
 				params.push_back(tmp.substr(1, tmp.length() - 2));
 			}
-			/** \todo: don't hardcode the module to load from **/
-			if (scriptctx.invokeMethod(command, params, loadedModules[0])) {
-			} else if (scriptctx.invokeMethod(command, params, document, engine)) {
-			} else {
-				logger->critical("Could not invoke {}", command);
-				abort(); /** \todo more graceful shutdown **/
-			}
+			invokeCommand(command, params);
 			break;
 		}
 		default:
@@ -179,6 +183,54 @@ public:
 		return defaultResult();
 	}
 };
+
+#if 0
+#include <letterpress/parser/parser.hpp>
+class Visitor final : public lp::parser::Visitor {
+private:
+	using DoctypeArgs = std::map<std::string, std::any>;
+
+	lp::log::LoggerPtr logger;
+	ScriptEngine engine;
+	Context scriptctx;
+	std::vector<path> includeDirs;
+
+	std::vector<Module> loadedModules;
+	std::shared_ptr<IDocClass> doctype = nullptr;
+
+	Visitor(const Visitor& other) = delete;
+	Visitor(Visitor&& other) = delete;
+
+public:
+	Document document;
+
+	Visitor(lp::Driver& driver, std::vector<path> includeDirs)
+			: logger(lp::log::getLogger("parser")), document({driver}), includeDirs(includeDirs), scriptctx(nullptr) {
+		engine.init(&document);
+		scriptctx = std::move(engine.createContext());
+		/** \todo remove hardcoded font **/
+		document.pushFont("cmr12");
+	}
+
+	virtual void visitCommand(std::string command) override {
+		std::string command = command;
+		std::vector<std::string> params;
+		for (auto&& param : ctx->param()) {
+			auto tmp = param->getText();
+			params.push_back(tmp.substr(1, tmp.length() - 2));
+		}
+		/** \todo: don't hardcode the module to load from **/
+		if (scriptctx.invokeMethod(command, params, loadedModules[0])) {
+		} else if (scriptctx.invokeMethod(command, params, document, engine)) {
+		} else {
+			logger->critical("Could not invoke {}", command);
+			abort(); /** \todo more graceful shutdown **/
+		}
+	}
+	virtual void visitCharacter(char32_t codepoint) override { document.addCharacter(codepoint); }
+	virtual void visitSpace() override { document.addWhitespace(); }
+};
+#endif
 
 lp::Parser::Parser(Driver& driver) : logger(lp::log::getLogger("parser")), driver(driver) {}
 
@@ -208,4 +260,16 @@ Document lp::Parser::parse(std::istream& input, std::vector<path> includeDirs) n
 	logger->info("Parsing done (took {} ms)", time.count());
 
 	return doc;
+	/*logger->info("Parsing");
+	auto start = std::chrono::steady_clock::now();
+
+	lp::parser::Lexer lexer(input);
+	Visitor visitor(driver, includeDirs);
+	lp::parser::Parser parser(lexer, visitor);
+
+	auto stop = std::chrono::steady_clock::now();
+	auto time = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+	logger->info("Parsing done (took {} ms)", time.count());
+
+	return visitor.document;*/
 }

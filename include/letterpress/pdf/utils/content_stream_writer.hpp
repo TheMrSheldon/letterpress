@@ -22,7 +22,7 @@ namespace lp::pdf::utils {
 		static constexpr char IdentifierStart = '/';
 		static constexpr char SepChar = ' ';
 
-		template<Operator op>
+		template <Operator op>
 		void writeOperator() noexcept {
 			content << lp::pdf::get_opcode(op) << SepChar;
 		}
@@ -31,15 +31,11 @@ namespace lp::pdf::utils {
 			/** \todo escape parenthesis **/
 			content << StringStartChar << str << StringEndChar << SepChar;
 		}
-		
-		void write(Identifier ident) noexcept {
-			content << IdentifierStart << ident.get() << SepChar;
-		}
-		
-		void write(float num) noexcept {
-			content << num << SepChar;
-		}
-		
+
+		void write(Identifier ident) noexcept { content << IdentifierStart << ident.get() << SepChar; }
+
+		void write(float num) noexcept { content << num << SepChar; }
+
 		void write(lp::pdf::Array array) noexcept {
 			content << ArrayStartChar;
 			for (const auto& element : array.get())
@@ -47,14 +43,14 @@ namespace lp::pdf::utils {
 			content << ArrayEndChar << SepChar;
 		}
 
-		template<Operator op, typename... Args>
+		template <Operator op, typename... Args>
 		ContentStreamWriter& write(Args&&... args) noexcept {
 			((write(args)), ...);
 			writeOperator<op>();
 			return *this;
 		}
+
 	public:
-	
 		// Page 398
 		/**
 		 * @brief Set the character spacing, Tc, to charSpace, which is a number expressed in unscaled text space units.
@@ -63,9 +59,7 @@ namespace lp::pdf::utils {
 		 * @param charSpace 
 		 * @return ** ContentStreamWriter& 
 		 */
-		ContentStreamWriter& setCharSpacing(float charSpace) {
-			return write<Operator::SetCharSpacing>(charSpace);
-		}
+		ContentStreamWriter& setCharSpacing(float charSpace) { return write<Operator::SetCharSpacing>(charSpace); }
 		/**
 		 * @brief Set the word spacing, Tw, to wordSpace, which is a number expressed in unscaled text space units. Word
 		 * spacing is used by the Tj, TJ, and ' operators. Initial value: 0. 
@@ -73,9 +67,7 @@ namespace lp::pdf::utils {
 		 * @param wordSpace 
 		 * @return ContentStreamWriter& 
 		 */
-		ContentStreamWriter& setWordSpacing(float wordSpace) {
-			return write<Operator::SetWordSpacing>(wordSpace);
-		}
+		ContentStreamWriter& setWordSpacing(float wordSpace) { return write<Operator::SetWordSpacing>(wordSpace); }
 		/**
 		 * @brief Set the horizontal scaling, Th, to (scale ÷ 100). scale is a number specifying the percentage of the
 		 * normal width. Initial value: 100 (normal width).
@@ -93,9 +85,7 @@ namespace lp::pdf::utils {
 		 * @param leading 
 		 * @return ContentStreamWriter& 
 		 */
-		ContentStreamWriter& setTextLeading(float leading) {
-			return write<Operator::SetTextLeading>(leading);
-		}
+		ContentStreamWriter& setTextLeading(float leading) { return write<Operator::SetTextLeading>(leading); }
 		/**
 		 * @brief Set the text font, Tf, to font and the text font size, Tfs, to size. font is the name of a font
 		 * resource in the Font subdictionary of the current resource dictionary; size is a number representing a scale
@@ -125,9 +115,7 @@ namespace lp::pdf::utils {
 		 * @param mode 
 		 * @return ContentStreamWriter& 
 		 */
-		ContentStreamWriter& setTextRise(float rise) {
-			return write<Operator::SetTextRise>(rise);
-		}
+		ContentStreamWriter& setTextRise(float rise) { return write<Operator::SetTextRise>(rise); }
 
 		// Page 405
 		/**
@@ -137,17 +125,13 @@ namespace lp::pdf::utils {
 		 * 
 		 * @return ContentStreamWriter& 
 		 */
-		ContentStreamWriter& beginText() noexcept {
-			return write<Operator::BeginText>();
-		}
+		ContentStreamWriter& beginText() noexcept { return write<Operator::BeginText>(); }
 		/**
 		 * @brief End a text object, discarding the text matrix
 		 * 
 		 * @return ContentStreamWriter& 
 		 */
-		ContentStreamWriter& endText() noexcept {
-			return write<Operator::EndText>();
-		}
+		ContentStreamWriter& endText() noexcept { return write<Operator::EndText>(); }
 
 		// Page 406
 		/**
@@ -158,9 +142,7 @@ namespace lp::pdf::utils {
 		 * @param ty 
 		 * @return ContentStreamWriter& 
 		 */
-		ContentStreamWriter& moveText(float tx, float ty) noexcept {
-			return write<Operator::MoveText>(tx, ty);
-		}
+		ContentStreamWriter& moveText(float tx, float ty) noexcept { return write<Operator::MoveText>(tx, ty); }
 		/**
 		 * @brief Move to the start of the next line, offset from the start of the current line by
 		 * (tx , ty ). As a side effect, this operator sets the leading parameter in the text state.
@@ -174,7 +156,7 @@ namespace lp::pdf::utils {
 		ContentStreamWriter& moveTextSetLeading(float tx, float ty) noexcept {
 			return write<Operator::MoveTextSetLeading>(tx, ty);
 		}
-		
+
 		/**
 		 * @brief Set the text matrix, Tm, and the text line matrix, Tlm:
 		 * The operands are all numbers, and the initial value for Tm and Tlm is the identity
@@ -196,9 +178,7 @@ namespace lp::pdf::utils {
 		 * 
 		 * @return ContentStreamWriter& 
 		 */
-		ContentStreamWriter& nextLine() noexcept {
-			return write<Operator::NextLine>();
-		}
+		ContentStreamWriter& nextLine() noexcept { return write<Operator::NextLine>(); }
 
 		// Page 407
 		/**
@@ -207,9 +187,7 @@ namespace lp::pdf::utils {
 		 * @param text 
 		 * @return ContentStreamWriter& 
 		 */
-		ContentStreamWriter& showText(std::string text) noexcept {
-			return write<Operator::ShowText>(text);
-		}
+		ContentStreamWriter& showText(std::string text) noexcept { return write<Operator::ShowText>(text); }
 		/**
 		 * @brief Move to the next line and show a text string. This operator has the same effect as
 		 * the code
@@ -219,9 +197,7 @@ namespace lp::pdf::utils {
 		 * @param text 
 		 * @return ContentStreamWriter& 
 		 */
-		ContentStreamWriter& showTextLine(std::string text) noexcept {
-			return write<Operator::ShowTextLine>(text);
-		}
+		ContentStreamWriter& showTextLine(std::string text) noexcept { return write<Operator::ShowTextLine>(text); }
 		/**
 		 * @brief Move to the next line and show a text string, using aw as the word spacing and ac
 		 * as the character spacing (setting the corresponding parameters in the text state).
@@ -257,9 +233,6 @@ namespace lp::pdf::utils {
 			return write<Operator::ShowTextAdjusted>(param);
 		}
 
-
-		std::string getContent() const noexcept {
-			return content.str();
-		}
+		std::string getContent() const noexcept { return content.str(); }
 	};
-}
+} // namespace lp::pdf::utils

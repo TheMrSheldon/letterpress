@@ -38,7 +38,8 @@ void PDFDriver::writeVBox(lp::pdf::Page& page, const lp::doc::VBox& vbox) {
 				lp::utils::overloaded{
 						[this, &page](const lp::doc::VBox& vbox) { writeVBox(page, vbox); },
 						[this, &page](const lp::doc::HBox& hbox) { writeHBox(page, hbox); },
-						[this, &page](const lp::doc::Glue& glue) { /** \todo implement **/ }
+						[this, &page](const lp::doc::Glue& glue) { /** \todo implement **/ },
+						[this, &page](const lp::doc::Penalty& penalty) { /** \todo implement **/ }
 				},
 				elem
 		);
@@ -83,6 +84,8 @@ void PDFDriver::writeHBox(lp::pdf::Page& page, const lp::doc::HBox& hbox) {
 	/** \todo remove hardcoded 1.2*lineskip**/
 	stream.getStreamWriter().showTextAdjusted(array).moveText(0, (-12) * 1.2);
 }
+
+void PDFDriver::createGraphic() {}
 
 void PDFDriver::shipout(const lp::doc::VBox& page) {
 	auto& pdfpage = pdf.addPage();

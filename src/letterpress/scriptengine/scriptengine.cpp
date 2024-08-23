@@ -22,21 +22,25 @@ ScriptEngine::~ScriptEngine() {
 
 bool ScriptEngine::init(lp::doc::Document* doc) {
 	int r = angelscript->SetMessageCallback(asMETHOD(lp::script::ScriptEngine, logCallback), this, asCALL_THISCALL);
-	if (r != 0)
+	if (r < 0)
 		return false;
 	RegisterStdString(angelscript);
 
 	r = angelscript->RegisterInterface("IDocumentType");
-	assert(r == 0);
+	assert(r >= 0);
 	if (doc != nullptr) {
+		r = angelscript->RegisterGlobalFunction(
+				"void par()", asMETHOD(lp::doc::Document, writeParagraph), asCALL_THISCALL_ASGLOBAL, doc
+		);
+		assert(r >= 0);
 		r = angelscript->RegisterGlobalFunction(
 				"void pushFont(string)", asMETHOD(lp::doc::Document, pushFont), asCALL_THISCALL_ASGLOBAL, doc
 		);
-		assert(r == 0);
+		assert(r >= 0);
 		r = angelscript->RegisterGlobalFunction(
 				"void popFont()", asMETHOD(lp::doc::Document, popFont), asCALL_THISCALL_ASGLOBAL, doc
 		);
-		assert(r == 0);
+		assert(r >= 0);
 	} else {
 		r = angelscript->RegisterGlobalFunction("void pushFont(string)", asSFuncPtr(), asCALL_CDECL);
 		r = angelscript->RegisterGlobalFunction("void popFont()", asSFuncPtr(), asCALL_CDECL);

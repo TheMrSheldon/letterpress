@@ -8,7 +8,8 @@
 
 using namespace lp::pdf::utils;
 
-FileContentProvider::FileContentProvider(std::string path, Filter filter) : StreamDataProvider(false), path(path), filter(filter) {}
+FileContentProvider::FileContentProvider(std::string path, Filter filter)
+		: StreamDataProvider(false), path(path), filter(filter) {}
 
 void FileContentProvider::provideStreamData(QPDFObjGen const&, Pipeline* pipeline) {
 	std::vector<std::shared_ptr<Pipeline>> to_delete;
@@ -19,9 +20,7 @@ void FileContentProvider::provideStreamData(QPDFObjGen const&, Pipeline* pipelin
 		p_new = std::make_shared<Pl_Flate>("font file", pipeline, Pl_Flate::action_e::a_deflate);
 		to_delete.push_back(p_new);
 		p = p_new.get();
-		printf("Flate\n");
 	}
-
 
 	std::ifstream file(path, std::ios::binary);
 	char buffer[4048];

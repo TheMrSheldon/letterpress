@@ -1,8 +1,8 @@
 #pragma once
 
-#include "boxes.hpp"
 #include "../logging.hpp"
 #include "../pdf/utils/fontfile.hpp"
+#include "boxes.hpp"
 
 #include <any>
 #include <filesystem>
@@ -31,13 +31,13 @@ namespace lp::doc {
 
 	private:
 		enum class Mode {
-			UnrestHorizMode,	/**< Adds material to the current horizontal list. **/
+			UnrestHorizMode, /**< Adds material to the current horizontal list. **/
 			/**
 			 * Adds material to the current horizontal list. Restricted horizontal mode can not switch to vertical mode.
 			 **/
 			RestHorizMode,
-			VertMode,			/**< Adds material to the current vertical list. **/
-			InternVertMode,		/**< Adds material to the current vertical list. **/
+			VertMode,		/**< Adds material to the current vertical list. **/
+			InternVertMode, /**< Adds material to the current vertical list. **/
 			MathMode,
 			DispMathMode
 		};
@@ -47,12 +47,19 @@ namespace lp::doc {
 		lp::log::LoggerPtr logger;
 		/** \todo maybe this can be removed and inferred from the "boxes" stack **/
 		Mode mode = Mode::VertMode; /** \todo: is this the correct initial state? **/
-		
+
 		std::stack<AnyBox> boxes;
 
 		std::stack<std::shared_ptr<lp::pdf::utils::FontFile>> fonts;
 
+		/**
+		 * @brief Ships the given hbox by breaking lines and appending the broken lines to the outside box.
+		 * 
+		 * @param top 
+		 * @param hbox 
+		 */
 		void ship(AnyBox& top, HBox& hbox) const;
+
 	public:
 		Document(lp::Driver& driver) noexcept;
 
@@ -64,4 +71,4 @@ namespace lp::doc {
 
 		void flush();
 	};
-}
+} // namespace lp::doc

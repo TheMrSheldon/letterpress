@@ -5,13 +5,12 @@
 #include "document/document.hpp"
 
 namespace lp {
-    class Driver {
-    private:
+	class Driver {
+	private:
+	public:
+		virtual ~Driver() = default;
 
-    public:
-        virtual ~Driver() = default;
-
-        virtual void shipout(const lp::doc::VBox& page) = 0;
-    };
-}
+		virtual void shipout(const lp::doc::VBox& page) = 0;
+	};
+} // namespace lp
 #endif

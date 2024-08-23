@@ -32,9 +32,9 @@ namespace lp::doc {
 	};
 
 	struct Penalty {
-		int cost; /**< The cost of ending a line here. May be negative to encourage breaks. **/
+		int cost;	 /**< The cost of ending a line here. May be negative to encourage breaks. **/
 		float width; /**< The additional width if a break occurs at this point (e.g., due to a hyphen).**/
-		bool flag; /**< The algorithm tries not to end consecutive rows on flagged penalties. **/
+		bool flag;	 /**< The algorithm tries not to end consecutive rows on flagged penalties. **/
 	};
 
 	class VBox;
@@ -42,25 +42,18 @@ namespace lp::doc {
 	using AnyBox = std::variant<VBox, HBox>;
 
 	struct HBox : public Box {
-		using Elem = std::variant<
-			HBox,
-			VBox,
-			Glyph,
-			Glue,
-			Kerning
-		>;
+		/** \todo support "disc" elements for discretionary breaks **/
+		using Elem = std::variant<HBox, VBox, Glyph, Glue, Kerning>;
 
 		std::vector<Elem> content;
 	};
 
 	struct VBox : public Box {
-		using Elem = std::variant<
-			HBox,
-			VBox,
-			Glue
-		>;
+		using Elem = std::variant<HBox, VBox, Glue, Penalty>;
 
 		std::vector<Elem> content;
 	};
 
-};
+	std::vector<HBox> linebreaking(const HBox& hbox);
+
+}; // namespace lp::doc
