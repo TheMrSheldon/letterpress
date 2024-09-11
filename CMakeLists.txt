@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
 option(BUILD_TESTS "Build tests" ON)
+option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
 ######################################################
 # READ VERSION NUMBER FROM ./include/letterpress.hpp #

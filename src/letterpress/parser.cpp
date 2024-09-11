@@ -1,14 +1,10 @@
 #include <letterpress/parser.hpp>
-#include <letterpress/scriptengine/scriptengine.hpp>
 
 #include <antlr4-runtime.h>
-#include <lplexer.h>
-#include <lpparser.h>
-#include <lpparserBaseVisitor.h>
 
-#include <chrono>
-#include <optional>
-#include <sstream>
+#include <jointparserBaseVisitor.h>
+#include <jointparserLexer.h>
+#include <jointparserParser.h>
 
 using namespace antlr4;
 using namespace lp;
@@ -21,7 +17,7 @@ using path = std::filesystem::path;
 /**
  * \brief Extracts the first UTF-8 codepoint from the given string
  */
-inline char32_t from_utf8(std::string str) {
+inline char32_t from_utf8(const std::string& str) {
 	uint8_t* bytes = (uint8_t*)str.c_str();
 	if (bytes[0] < 0b10000000u) { /** 1 Byte UTF-8 **/
 		return bytes[0];
@@ -36,7 +32,7 @@ inline char32_t from_utf8(std::string str) {
 	throw std::runtime_error("UTF-8 codepoint out of range");
 }
 
-class Visitor final : public lpparserBaseVisitor {
+class Visitor final : public jointparserBaseVisitor {
 private:
 	using DoctypeArgs = std::map<std::string, std::any>;
 
@@ -63,11 +59,11 @@ public:
 
 	virtual ~Visitor() {
 		doctype = nullptr;	 /* Destroy doctype */
-		scriptctx = nullptr; /* Destroy context */
+		scriptctx.destroy(); /* Destroy context */
 		engine.deinit();
 	}
 
-	std::optional<path> getModulePath(std::string moduleName) const noexcept {
+	std::optional<path> getModulePath(const std::string& moduleName) const noexcept {
 		for (auto&& dir : includeDirs) {
 			auto path = dir / (moduleName + ".lpbin");
 			if (std::filesystem::is_regular_file(path))
@@ -76,17 +72,18 @@ public:
 		return std::nullopt;
 	}
 
-	virtual std::any visitFile(lpparser::FileContext* ctx) override {
+	virtual std::any visitFile(jointparserParser::FileContext* ctx) override {
 		visitChildren(ctx);
 		document.flush();
 		return document;
 	}
 
-	virtual std::any visitP_import_expr(lpparser::P_import_exprContext* ctx) override {
-		logger->trace("Importing module: {}", ctx->IDENT()->getText());
-		auto modpath = getModulePath(ctx->IDENT()->getText());
+	virtual std::any visitP_import_expr(jointparserParser::P_import_exprContext* ctx) override {
+		auto modname = std::any_cast<std::string>(visitIdent(ctx->name));
+		logger->trace("Importing module: {}", modname);
+		auto modpath = getModulePath(modname);
 		if (!modpath.has_value()) {
-			logger->critical("Failed to load module {}: Not found", ctx->IDENT()->getText());
+			logger->critical("Failed to load module {}: Not found", modname);
 			return defaultResult();
 		} else {
 			loadedModules.push_back(engine.loadModule(modpath.value()));
@@ -94,12 +91,12 @@ public:
 		}
 	}
 
-	virtual std::any visitP_doctype_expr(lpparser::P_doctype_exprContext* ctx) override {
+	virtual std::any visitP_doctype_expr(jointparserParser::P_doctype_exprContext* ctx) override {
 		if (doctype) {
 			logger->critical("Found a second doctype declaration");
 			abort(); /** \todo more graceful shutdown */
 		}
-		auto doctypename = ctx->IDENT()->getText();
+		auto doctypename = std::any_cast<std::string>(visitIdent(ctx->name));
 		logger->trace("Loading document type {}", doctypename);
 		/** \todo remove hardcoded module to load docclass from **/
 		doctype = scriptctx.instantiateDocumentClass(doctypename, loadedModules[0]);
@@ -107,130 +104,83 @@ public:
 			logger->critical("Document type {} was not found", doctypename);
 			abort(); /** \todo more graceful shutdown */
 		}
-		auto arguments = std::any_cast<DoctypeArgs>(visitP_args(ctx->p_args()));
-		logger->debug("Arguments:");
-		for (auto&& [key, value] : arguments) {
-			if (value.type() == typeid(std::string)) {
-				logger->debug("    {:10}:    {}", key, std::any_cast<std::string>(value));
-			} else {
-				logger->debug("    {:10}:    ???", key);
+		if (ctx->args != nullptr) {
+			auto args = std::any_cast<std::map<std::string, std::any>>(visitDict(ctx->args));
+			logger->debug("Arguments:");
+			for (auto&& [key, value] : args) {
+				if (value.type() == typeid(std::string)) {
+					logger->debug("    {:10}:    {}", key, std::any_cast<std::string>(value));
+				} else if (value.type() == typeid(float)) {
+					logger->debug("    {:10}:    {}", key, std::any_cast<float>(value));
+				} else if (value.type() == typeid(std::vector<std::any>)) {
+					logger->debug("    {:10}:    <>", key);
+				} else {
+					logger->debug("    {:10}:    ???", key);
+				}
 			}
+		} else {
+			logger->debug("Arguments: <empty>");
 		}
 		return defaultResult();
 	}
 
-	virtual std::any visitP_args(lpparser::P_argsContext* ctx) override {
-		DoctypeArgs arguments;
-		for (auto&& child : ctx->p_arg()) {
-			std::any childResult = child->accept(this);
-			auto result = std::any_cast<DoctypeArgs::value_type>(childResult);
-			arguments.insert(result);
-		}
-		return arguments;
-	}
+	virtual std::any visitContent(jointparserParser::ContentContext* ctx) override { return visitChildren(ctx); }
 
-	virtual std::any visitP_arg(lpparser::P_argContext* ctx) override {
-		auto key = ctx->IDENT()->getText();
-		auto value = ctx->p_arg_val()->getText(); /** \todo visit child instead to get the correct datatype **/
-		return DoctypeArgs::value_type(key, value);
-	}
-
-	virtual std::any visitContent(lpparser::ContentContext* ctx) override {
-		logger->trace("Processing Content");
+	virtual std::any visitContent_part(jointparserParser::Content_partContext* ctx) override {
 		return visitChildren(ctx);
 	}
 
-	void invokeCommand(std::string name, std::vector<std::string> args) {
-		/** \todo: don't hardcode the module to load from **/
-		if (scriptctx.invokeMethod(name, args, loadedModules[0])) {
-		} else if (scriptctx.invokeMethod(name, args, document, engine)) {
-		} else {
-			logger->critical("Could not invoke {}", name);
-			abort(); /** \todo more graceful shutdown **/
-		}
-	}
-
-	virtual std::any visitContent_part(lpparser::Content_partContext* ctx) override {
-		switch (ctx->getStart()->getType()) {
-		case lpparser::SPACE:
-			document.addWhitespace();
-			break;
-		case lpparser::CHARACTER: {
-			char32_t character = from_utf8(ctx->getText());
-			document.addCharacter(character);
-			break;
-		}
-		case lpparser::PAR:
-			invokeCommand("par", {});
-			break;
-		case lpparser::COMMAND: {
-			std::string command = ctx->COMMAND()->getText().substr(1);
-			std::vector<std::string> params;
-			for (auto&& param : ctx->param()) {
-				auto tmp = param->getText();
-				params.push_back(tmp.substr(1, tmp.length() - 2));
-			}
-			invokeCommand(command, params);
-			break;
-		}
-		default:
-			logger->critical(
-					"Unexpected token type in content: {}. This is a bug and should never happen.",
-					ctx->getStart()->getType()
-			);
-			abort(); /** \todo more graceful shutdown */
-		}
+	virtual std::any visitCharacter(jointparserParser::CharacterContext* ctx) override {
+		char32_t character = from_utf8(ctx->getText());
+		document.addCharacter(character);
 		return defaultResult();
 	}
-};
 
-#if 0
-#include <letterpress/parser/parser.hpp>
-class Visitor final : public lp::parser::Visitor {
-private:
-	using DoctypeArgs = std::map<std::string, std::any>;
-
-	lp::log::LoggerPtr logger;
-	ScriptEngine engine;
-	Context scriptctx;
-	std::vector<path> includeDirs;
-
-	std::vector<Module> loadedModules;
-	std::shared_ptr<IDocClass> doctype = nullptr;
-
-	Visitor(const Visitor& other) = delete;
-	Visitor(Visitor&& other) = delete;
-
-public:
-	Document document;
-
-	Visitor(lp::Driver& driver, std::vector<path> includeDirs)
-			: logger(lp::log::getLogger("parser")), document({driver}), includeDirs(includeDirs), scriptctx(nullptr) {
-		engine.init(&document);
-		scriptctx = std::move(engine.createContext());
-		/** \todo remove hardcoded font **/
-		document.pushFont("cmr12");
+	virtual std::any visitSpace(jointparserParser::SpaceContext* ctx) override {
+		document.addWhitespace();
+		return defaultResult();
 	}
 
-	virtual void visitCommand(std::string command) override {
-		std::string command = command;
-		std::vector<std::string> params;
-		for (auto&& param : ctx->param()) {
-			auto tmp = param->getText();
-			params.push_back(tmp.substr(1, tmp.length() - 2));
-		}
-		/** \todo: don't hardcode the module to load from **/
-		if (scriptctx.invokeMethod(command, params, loadedModules[0])) {
-		} else if (scriptctx.invokeMethod(command, params, document, engine)) {
-		} else {
-			logger->critical("Could not invoke {}", command);
-			abort(); /** \todo more graceful shutdown **/
-		}
+	virtual std::any visitActive_seq(jointparserParser::Active_seqContext* ctx) override {
+		/** For now only one active sequence is supported: \n\n */
+		document.writeParagraph();
+		return defaultResult();
 	}
-	virtual void visitCharacter(char32_t codepoint) override { document.addCharacter(codepoint); }
-	virtual void visitSpace() override { document.addWhitespace(); }
+
+	virtual std::any visitCommand(jointparserParser::CommandContext* ctx) override { return visitChildren(ctx); }
+
+	virtual std::any visitValue(jointparserParser::ValueContext* ctx) override { return visitChildren(ctx); }
+
+	virtual std::any visitText(jointparserParser::TextContext* ctx) override { return ctx->getText(); }
+
+	virtual std::any visitNumber(jointparserParser::NumberContext* ctx) override { return std::stof(ctx->getText()); }
+
+	virtual std::any visitArray(jointparserParser::ArrayContext* ctx) override {
+		std::vector<std::any> vec;
+		for (auto child : ctx->entries)
+			vec.push_back(visitValue(child));
+		return vec;
+	}
+
+	virtual std::any visitDict(jointparserParser::DictContext* ctx) override {
+		std::map<std::string, std::any> dict;
+		for (auto entry : ctx->entries)
+			dict.insert(std::any_cast<decltype(dict)::value_type>(visitDict_entry(entry)));
+		return dict;
+	}
+
+	virtual std::any visitDict_entry(jointparserParser::Dict_entryContext* ctx) override {
+		auto key = std::any_cast<std::string>(visitIdent(ctx->key));
+		auto value = visitValue(ctx->val);
+		return std::pair<const std::string, std::any>(std::move(key), std::move(value));
+	}
+
+	virtual std::any visitIdent(jointparserParser::IdentContext* ctx) override { return ctx->getText(); }
+
+	//virtual std::any visitDigit(jointparserParser::DigitContext* ctx) override { return std::stoi(ctx->getText()); }
+
+	//virtual std::any visitAlpha(jointparserParser::AlphaContext* ctx) override { return ctx->getText(); }
 };
-#endif
 
 lp::Parser::Parser(Driver& driver) : logger(lp::log::getLogger("parser")), driver(driver) {}
 
@@ -248,9 +198,9 @@ Document lp::Parser::parse(std::istream& input, std::vector<path> includeDirs) n
 	logger->info("Parsing");
 	auto start = std::chrono::steady_clock::now();
 	ANTLRInputStream stream(input);
-	lplexer lexer(&stream);
+	jointparserLexer lexer(&stream);
 	CommonTokenStream tokens(&lexer);
-	lpparser parser(&tokens);
+	jointparserParser parser(&tokens);
 
 	Visitor visitor(driver, includeDirs);
 	auto doc = std::any_cast<Document>(visitor.visit(parser.file()));
@@ -260,16 +210,4 @@ Document lp::Parser::parse(std::istream& input, std::vector<path> includeDirs) n
 	logger->info("Parsing done (took {} ms)", time.count());
 
 	return doc;
-	/*logger->info("Parsing");
-	auto start = std::chrono::steady_clock::now();
-
-	lp::parser::Lexer lexer(input);
-	Visitor visitor(driver, includeDirs);
-	lp::parser::Parser parser(lexer, visitor);
-
-	auto stop = std::chrono::steady_clock::now();
-	auto time = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-	logger->info("Parsing done (took {} ms)", time.count());
-
-	return visitor.document;*/
 }

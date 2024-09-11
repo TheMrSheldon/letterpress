@@ -12,7 +12,7 @@ private:
 	asIScriptObject* obj;
 
 public:
-	ScriptDocClass(asIScriptObject* obj) : obj(obj) { obj->AddRef(); }
+	explicit ScriptDocClass(asIScriptObject* obj) : obj(obj) { obj->AddRef(); }
 	~ScriptDocClass() {
 		if (obj != nullptr)
 			obj->Release();

@@ -33,6 +33,8 @@ namespace lp::log {
 ///////////////////////////
 #include <spdlog/fmt/bundled/format.h>
 
+#include <optional>
+
 template <typename T>
 struct fmt::formatter<std::optional<T>> {
 	constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.end(); }

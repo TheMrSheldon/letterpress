@@ -18,7 +18,7 @@ namespace lp {
 		void createGraphic();
 
 	public:
-		PDFDriver(std::filesystem::path outfile);
+		explicit PDFDriver(std::filesystem::path outfile);
 		virtual ~PDFDriver();
 
 		virtual void shipout(const lp::doc::VBox& page) override;

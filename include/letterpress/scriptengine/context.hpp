@@ -24,16 +24,19 @@ namespace lp::script {
 		Context(const Context& other) = delete;
 		Context& operator=(const Context& other) = delete;
 
-		void destroy();
 	public:
-		Context(asIScriptContext* context);
+		explicit Context(asIScriptContext* context);
 		Context(Context&& other);
 		~Context();
 
 		Context& operator=(Context&& other);
 
+		void destroy();
+
 		std::shared_ptr<lp::doc::IDocClass> instantiateDocumentClass(std::string name, Module& module);
 		bool invokeMethod(std::string name, std::vector<std::string> arguments, Module& module);
-		bool invokeMethod(std::string name, std::vector<std::string> arguments, lp::doc::Document& doc, ScriptEngine& engine);
+		bool invokeMethod(
+				std::string name, std::vector<std::string> arguments, lp::doc::Document& doc, ScriptEngine& engine
+		);
 	};
-}
+} // namespace lp::script

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../document/dimension.hpp"
 #include "../../logging.hpp"
 
 #include <filesystem>
@@ -15,8 +16,8 @@ namespace lp::pdf::utils {
 	private:
 		lp::log::LoggerPtr logger;
 		struct GlyphInfo {
-			float advanceX;
-			float width, height;
+			lp::doc::Dimension advanceX;
+			lp::doc::Dimension width, height;
 		};
 
 		std::filesystem::path path;
@@ -32,7 +33,7 @@ namespace lp::pdf::utils {
 	public:
 		FontFile();
 		FontFile(FontFile&& other);
-		FontFile(std::filesystem::path path, std::filesystem::path afmPath = "");
+		explicit FontFile(std::filesystem::path path, std::filesystem::path afmPath = "");
 		~FontFile();
 		FontFile& operator=(FontFile&& other);
 
@@ -42,12 +43,13 @@ namespace lp::pdf::utils {
 
 		short getAscent() const noexcept;
 		short getDescent() const noexcept;
+		float getXEm() const noexcept;
 		void getBoundingBox(double& xmin, double& ymin, double& xmax, double& ymax) const noexcept;
 		unsigned getGlyphForChar(char32_t c) const noexcept;
 		GlyphInfo getGlyphInfo(unsigned glyph) const noexcept;
 
-		bool containsChar(char c) const noexcept;
-		float getKerning(char32_t left, char32_t right) const noexcept;
+		bool containsChar(char32_t c) const noexcept;
+		lp::doc::Dimension getKerning(char32_t left, char32_t right) const noexcept;
 	};
 
 } // namespace lp::pdf::utils

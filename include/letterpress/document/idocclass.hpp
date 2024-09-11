@@ -5,8 +5,7 @@
 namespace lp::doc {
 	class IDocClass {
 	private:
-
 	public:
 		virtual ILayout& getLayout() = 0;
 	};
-}
+} // namespace lp::doc

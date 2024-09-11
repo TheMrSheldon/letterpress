@@ -11,7 +11,6 @@ FetchContent_MakeAvailable(catch)
 add_executable(tests
 	# Add test files here
 	letterpress/document/hyphenation.cpp
-	letterpress/parser/parser.cpp
 )
 
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain letterpress)

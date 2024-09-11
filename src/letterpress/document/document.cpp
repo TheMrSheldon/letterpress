@@ -12,7 +12,7 @@ using namespace lp::utils;
 Document::Document(lp::Driver& driver) noexcept : logger(lp::log::getLogger("DocProcessor")), driver(driver) {
 	/** \todo Non-hardcoded width and height **/
 	boxes.emplace(
-			VBox{{.width = 210, .height = 297, .depth = 0},
+			VBox{{.width = 210_mm, .height = 297_mm, .depth = 0_pt},
 				 /* .content = */ {}}
 	);
 }
@@ -46,6 +46,13 @@ void Document::ship(AnyBox& top, HBox& hbox) const {
 			},
 			top
 	);
+	if (boxes.size() == 1) {
+		const VBox& top = std::get<VBox>(boxes.top());
+		Dimension height = 0_pt;
+		for (auto content : top.content) {
+			height += std::get<HBox>(content).height;
+		}
+	}
 }
 
 void Document::pushFont(std::string path) noexcept {
@@ -64,6 +71,9 @@ void Document::pushFont(std::string path) noexcept {
 
 void Document::popFont() noexcept { fonts.pop(); }
 
+lp::pdf::utils::FontFile& Document::currentFont() noexcept { return *fonts.top(); }
+const lp::pdf::utils::FontFile& Document::currentFont() const noexcept { return *fonts.top(); }
+
 void Document::addCharacter(char32_t character) {
 	if (mode == Mode::VertMode || mode == Mode::InternVertMode) {
 		logger->trace("Vert -> Horiz");
@@ -78,7 +88,8 @@ void Document::addCharacter(char32_t character) {
 	assert(font.get() != nullptr);
 	auto glyphIdx = font->getGlyphForChar(character);
 	Glyph glyph{
-			{.width = font->getGlyphInfo(glyphIdx).advanceX * 1000.0f, .height = font->getGlyphInfo(glyphIdx).height},
+			{.width = (font->getGlyphInfo(glyphIdx).advanceX).resolve(12, 0), /** \todo  use actual font size**/
+			 .height = (font->getGlyphInfo(glyphIdx).height).resolve(12, 0)},
 			/*.charcode =*/character,
 			/*.font =*/font
 	};
@@ -89,8 +100,8 @@ void Document::addCharacter(char32_t character) {
 		auto& prev = hbox.content.back();
 		if (auto* pglyph = std::get_if<Glyph>(&prev)) {
 			auto kerning = font->getKerning(pglyph->charcode, character);
-			if (kerning != 0) // Should this instead compare with some epsilon?
-				hbox.content.push_back(Kerning{{.width = kerning}});
+			if (kerning != 0_pt) // Should this instead compare with some epsilon?
+				hbox.content.push_back(Kerning{{.width = kerning.resolve(12, 0)}});
 		}
 	}
 
@@ -101,7 +112,7 @@ void Document::addWhitespace() {
 	if (mode == Mode::RestHorizMode || mode == Mode::UnrestHorizMode) {
 		/** \todo insert correct glue **/
 		auto& hbox = std::get<HBox>(boxes.top());
-		hbox.content.push_back(Glue(300.0f)); /** \todo What is a good value? **/
+		hbox.content.push_back(Glue((1_em / 3).resolve(12, 0))); /** \todo Resolve EM with actual font size **/
 	}
 }
 

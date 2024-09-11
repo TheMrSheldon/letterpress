@@ -27,7 +27,7 @@ namespace lp::pdf::utils {
 			content << lp::pdf::get_opcode(op) << SepChar;
 		}
 
-		void write(std::string str) noexcept {
+		void write(const std::string& str) noexcept {
 			/** \todo escape parenthesis **/
 			content << StringStartChar << str << StringEndChar << SepChar;
 		}

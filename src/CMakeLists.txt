@@ -8,7 +8,6 @@ target_sources(letterpress PRIVATE
 	letterpress/document/boxes.cpp
 	letterpress/document/document.cpp
 	letterpress/document/hyphenation.cpp
-	letterpress/parser/parser.cpp
 	letterpress/pdf/constants.cpp
 	letterpress/pdf/font_descriptor.cpp
 	letterpress/pdf/font.cpp
@@ -52,12 +51,11 @@ target_include_directories(letterpress PUBLIC ${FREETYPE_SOURCE_DIR}/include)
 # AngelScript
 FetchContent_Declare(
 	angelscript
-	URL https://www.angelcode.com/angelscript/sdk/files/angelscript_2.36.0.zip
+	URL https://www.angelcode.com/angelscript/sdk/files/angelscript_2.37.0.zip
 	TLS_VERIFY true
 )
 FetchContent_MakeAvailable(angelscript)
 add_subdirectory(${angelscript_SOURCE_DIR}/angelscript/projects/cmake ${angelscript_BINARY_DIR})
-message(${ANGELSCRIPT_LIBRARY_NAME})
 target_link_libraries(letterpress ${ANGELSCRIPT_LIBRARY_NAME})
 target_include_directories(letterpress PUBLIC ${angelscript_SOURCE_DIR}/angelscript/include)
 # AngelScript's string add on
@@ -78,17 +76,10 @@ include(ExternalAntlr4Cpp)
 target_include_directories(letterpress PUBLIC ${ANTLR4CPP_INCLUDE_DIRS})
 
 find_package(ANTLR REQUIRED)
-
-antlr_target(LPGrammarLexer ${CMAKE_CURRENT_LIST_DIR}/letterpress/parser/lplexer.g4 LEXER PACKAGE lp)
-antlr_target(LPGrammarParser ${CMAKE_CURRENT_LIST_DIR}/letterpress/parser/lpparser.g4 PARSER
-			 VISITOR
-             PACKAGE lp
-             DEPENDS_ANTLR LPGrammarLexer
-             COMPILE_FLAGS -lib ${ANTLR_LPGrammarLexer_OUTPUT_DIR})
-
+antlr_target(LPGrammar ${CMAKE_CURRENT_LIST_DIR}/letterpress/parser/jointparser.g4 LEXER PARSER VISITOR PACKAGE lp)
 target_link_libraries(letterpress antlr4_static)
-target_include_directories(letterpress PUBLIC ${ANTLR_LPGrammarLexer_OUTPUT_DIR} ${ANTLR_LPGrammarParser_OUTPUT_DIR})
-target_sources(letterpress PUBLIC ${ANTLR_LPGrammarLexer_CXX_OUTPUTS} ${ANTLR_LPGrammarParser_CXX_OUTPUTS})
+target_include_directories(letterpress PUBLIC ${ANTLR_LPGrammar_OUTPUT_DIR})
+target_sources(letterpress PUBLIC ${ANTLR_LPGrammar_CXX_OUTPUTS})
 
 # QPDF
 FetchContent_Declare(QPDF GIT_REPOSITORY https://github.com/qpdf/qpdf.git GIT_TAG v11.9.1)

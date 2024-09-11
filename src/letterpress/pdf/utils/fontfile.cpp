@@ -6,6 +6,10 @@
 #include <iostream>
 
 using namespace lp::pdf::utils;
+using namespace lp::doc;
+
+// Info on translating the metrics
+// https://freetype.org/freetype2/docs/tutorial/step2.html#section-6
 
 static FT_Library library;
 static bool freetypeInitialized = false;
@@ -122,27 +126,29 @@ FontFile::GlyphInfo FontFile::getGlyphInfo(unsigned glyph) const noexcept {
 	auto scale = 1.0f / 1000.0f *
 				 (face->size->metrics.x_scale / 4194.0f
 				 ); /// (float)face->size->metrics.x_scale; //1.0f/64.0f * 1.0f/ (float)face->size->metrics.x_scale;
+	/** \todo are these units correct? **/
 	return {
-			.advanceX = face->glyph->advance.x * scale,
-			.width = face->glyph->metrics.width,
-			.height = face->glyph->metrics.height,
+			.advanceX = Dimension::em(face->glyph->advance.x * scale),
+			.width = Dimension::em(face->glyph->metrics.width),
+			.height = Dimension::em(face->glyph->metrics.height),
 	};
 }
 
 // https://freetype.org/freetype2/docs/tutorial/step2.html
-float FontFile::getKerning(char32_t left, char32_t right) const noexcept {
+Dimension FontFile::getKerning(char32_t left, char32_t right) const noexcept {
 	if (!hasKerningInfo) {
-		return 0;
+		return 0_pt;
 	}
 	auto leftGlyph = getGlyphForChar(left);
 	auto rightGlyph = getGlyphForChar(right);
 	FT_Vector kerning;
-	auto error = FT_Get_Kerning(face, leftGlyph, rightGlyph, FT_KERNING_DEFAULT, &kerning);
+	auto error = FT_Get_Kerning(face, leftGlyph, rightGlyph, FT_KERNING_UNSCALED, &kerning);
 	if (error) {
 		auto msg = FT_Error_String(error);
 		logger->critical(
 				"[{}] Error fetching kerning: {} -- {}", path.filename().string(), error, (msg ? msg : "<no message>")
 		);
 	}
-	return kerning.x / 64.0f;
+	return Dimension::em(kerning.x / face->size->metrics.x_ppem);
+	// return kerning.x / 64;
 }

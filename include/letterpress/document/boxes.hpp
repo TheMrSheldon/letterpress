@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../pdf/utils/fontfile.hpp"
+#include "dimension.hpp"
 
 #include <memory>
 #include <variant>
@@ -9,49 +10,61 @@
 namespace lp::doc {
 
 	struct Box {
-		float width;
-		float height;
-		float depth;
+		Dimension width;
+		Dimension height;
+		Dimension depth;
 	};
 
-	struct Glyph : public Box {
+	struct Glyph final : public Box {
 		char32_t charcode;
 		std::shared_ptr<lp::pdf::utils::FontFile> font;
 	};
 
-	struct Kerning : public Box {};
+	struct Kerning final : public Box {};
 
 	/** http://www.eprg.org/G53DOC/pdfs/knuth-plass-breaking.pdf **/
-	struct Glue {
+	struct Glue final {
 		/** Typically: 1/3 em **/
-		float idealwidth;
+		Dimension idealwidth;
 		/** Typically: 1/6 em **/
-		float stretchability;
+		Dimension stretchability;
 		/** Typically: 1/9 em **/
-		float shrinkability;
+		Dimension shrinkability;
 	};
 
-	struct Penalty {
-		int cost;	 /**< The cost of ending a line here. May be negative to encourage breaks. **/
-		float width; /**< The additional width if a break occurs at this point (e.g., due to a hyphen).**/
-		bool flag;	 /**< The algorithm tries not to end consecutive rows on flagged penalties. **/
+	struct Penalty final {
+		int cost;		 /**< The cost of ending a line here. May be negative to encourage breaks. **/
+		Dimension width; /**< The additional width if a break occurs at this point (e.g., due to a hyphen).**/
+		bool flag;		 /**< The algorithm tries not to end consecutive rows on flagged penalties. **/
 	};
 
 	class VBox;
 	class HBox;
 	using AnyBox = std::variant<VBox, HBox>;
 
-	struct HBox : public Box {
+	struct HBox final : public Box {
 		/** \todo support "disc" elements for discretionary breaks **/
-		using Elem = std::variant<HBox, VBox, Glyph, Glue, Kerning>;
+		using Elem = std::variant<HBox, VBox, Glyph, Glue, Kerning, Penalty>;
 
 		std::vector<Elem> content;
+
+		template <typename T>
+		HBox& operator<<(const T& item) {
+			content.emplace_back(item);
+			return *this;
+		}
 	};
 
-	struct VBox : public Box {
+	struct VBox final : public Box {
 		using Elem = std::variant<HBox, VBox, Glue, Penalty>;
 
 		std::vector<Elem> content;
+
+		template <typename T>
+		VBox& operator<<(const T& item) {
+			content.emplace_back(item);
+			return *this;
+		}
 	};
 
 	std::vector<HBox> linebreaking(const HBox& hbox);

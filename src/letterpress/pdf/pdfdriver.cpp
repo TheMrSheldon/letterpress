@@ -4,6 +4,7 @@
 #include <letterpress/utils/overloaded.hpp>
 
 using namespace lp;
+using namespace lp::doc;
 using namespace lp::pdf;
 
 PDFDriver::PDFDriver(std::filesystem::path outfile) : outfile(outfile), pdf() {}
@@ -50,7 +51,7 @@ void PDFDriver::writeHBox(lp::pdf::Page& page, const lp::doc::HBox& hbox) {
 	auto& stream = page.getContentStream();
 	lp::pdf::Array array;
 	std::string text;
-	float width = 0;
+	Dimension width = 0_pt;
 	/** \todo this code should be more readable**/
 	for (auto&& he : hbox.content) {
 		if (const auto val = std::get_if<lp::doc::Glyph>(&he)) {
@@ -61,7 +62,7 @@ void PDFDriver::writeHBox(lp::pdf::Page& page, const lp::doc::HBox& hbox) {
 					/** Push text **/
 					array.append(text);
 					text = "";
-					width = 0;
+					width = 0_pt;
 				}
 				/** Change font **/
 				stream.setFont(font, 12);
@@ -72,10 +73,10 @@ void PDFDriver::writeHBox(lp::pdf::Page& page, const lp::doc::HBox& hbox) {
 			if (!text.empty()) {
 				array.append(text);
 				text = "";
-				width = 0;
+				width = 0_pt;
 			}
-			array.append(-val->idealwidth);
-		} else { /** \todo add kerning support **/
+			array.append(-val->idealwidth.getPoint() * 83); /** \todo why 83? **/
+		} else {											/** \todo add kerning support **/
 			throw std::runtime_error("Unexpected datatype");
 		}
 	}
@@ -89,12 +90,13 @@ void PDFDriver::createGraphic() {}
 
 void PDFDriver::shipout(const lp::doc::VBox& page) {
 	auto& pdfpage = pdf.addPage();
-	int width = (int)pdfpage.mmToUserSpace(page.width);
-	int height = (int)pdfpage.mmToUserSpace(page.height);
+	int width = (int)pdfpage.mmToUserSpace(page.width.getMillimeter());
+	int height = (int)pdfpage.mmToUserSpace(page.height.getMillimeter());
 	pdfpage.setMediaBox(0, 0, width, height);
 
 	auto& stream = pdfpage.getContentStream();
-	stream.beginText().moveText(72, height - 72);
+	//stream.beginText().moveText(72, height - 72);
+	stream.beginText().moveText((2_cm).getPoint(), height - (1_em + 2_cm).resolve(12).getPoint());
 	writeVBox(pdfpage, page);
 	stream.endText();
 }

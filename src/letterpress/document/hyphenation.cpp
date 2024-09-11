@@ -22,8 +22,6 @@ void Hyphenation::addPattern(const std::string& pattern) noexcept {
 	patterns[str] = nums;
 }
 
-#include <iostream>
-
 std::vector<std::string> Hyphenation::hyphenate(std::string word) const noexcept {
 	word = '.' + word + '.';
 	uint8_t nums[word.length() + 2] = {0};

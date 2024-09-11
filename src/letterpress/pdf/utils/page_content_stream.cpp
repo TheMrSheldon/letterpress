@@ -4,6 +4,7 @@
 
 #include <assert.h>
 
+using namespace lp::doc;
 using namespace lp::pdf;
 using namespace lp::pdf::utils;
 
@@ -16,9 +17,7 @@ PageContentStream::GraphicsState& PageContentStream::getGraphicsState() noexcept
 	return graphicsState.top();
 }
 
-QPDFObjectHandle& PageContentStream::getHandle() {
-	return handle;
-}
+QPDFObjectHandle& PageContentStream::getHandle() { return handle; }
 
 PageContentStream& PageContentStream::setFont(Font& font, float size) {
 	auto& gstate = getGraphicsState();
@@ -54,12 +53,12 @@ PageContentStream& PageContentStream::showKernedText(std::string text) {
 	int last = 0;
 	for (char c : text) {
 		auto glyph = font.getGlyphForChar(c);
-		float kern = font.getKerning(last, glyph);
-		if (kern != 0) {
+		auto kern = font.getKerning(last, glyph);
+		if (kern != 0_pt) {
 			contentTxt.append(str.str());
 			str.str({});
 			str.clear();
-			contentTxt.append(-kern);
+			contentTxt.append(-kern.getPoint()); /** \todo pt correct? **/
 		}
 		if (c != '\0') {
 			str << c;

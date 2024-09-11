@@ -65,6 +65,9 @@ namespace lp::doc {
 
 		void pushFont(std::string font) noexcept;
 		void popFont() noexcept;
+		lp::pdf::utils::FontFile& currentFont() noexcept;
+		const lp::pdf::utils::FontFile& currentFont() const noexcept;
+
 		void addCharacter(char32_t character);
 		void addWhitespace();
 		void writeParagraph();

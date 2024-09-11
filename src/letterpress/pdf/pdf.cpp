@@ -23,7 +23,7 @@ Page& PDF::addPage() { return *pages.emplace_back(std::make_unique<Page>(*this))
 Font& PDF::registerFont(lp::pdf::utils::FontFilePtr font) {
 	auto iterator = fonts.find(font);
 	if (iterator == std::end(fonts)) {
-		auto& ptr = fonts[font] = std::move(std::make_unique<Font>(*this, font));
+		auto& ptr = fonts[font] = std::make_unique<Font>(*this, font);
 		return *ptr;
 	}
 	return *iterator->second;
