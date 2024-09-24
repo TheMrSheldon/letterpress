@@ -1,12 +1,9 @@
 #include <letterpress/parser.hpp>
 
-#include <antlr4-runtime.h>
+#include <letterpress/parser/lpparser.hpp>
 
-#include <jointparserBaseVisitor.h>
-#include <jointparserLexer.h>
-#include <jointparserParser.h>
+#include <fstream>
 
-using namespace antlr4;
 using namespace lp;
 using namespace lp::doc;
 using namespace lp::script;
@@ -32,12 +29,24 @@ inline char32_t from_utf8(const std::string& str) {
 	throw std::runtime_error("UTF-8 codepoint out of range");
 }
 
-class Visitor final : public jointparserBaseVisitor {
+lp::Parser::Parser(Driver& driver) : logger(lp::log::getLogger("parser")), driver(driver) {}
+
+Document lp::Parser::parse(const path& input, std::vector<path> includeDirs) noexcept {
+	std::ifstream stream(input, std::ios::binary);
+	return parse(stream, includeDirs);
+}
+
+Document lp::Parser::parse(const std::string& string, std::vector<path> includeDirs) noexcept {
+	std::istringstream stream(string);
+	return parse(stream, includeDirs);
+}
+
+class NewVisitor : public LPVisitor {
+
 private:
 	using DoctypeArgs = std::map<std::string, std::any>;
 
 	lp::log::LoggerPtr logger;
-	Document document;
 	ScriptEngine engine;
 	Context scriptctx;
 	std::vector<path> includeDirs;
@@ -45,11 +54,13 @@ private:
 	std::vector<Module> loadedModules;
 	std::shared_ptr<IDocClass> doctype = nullptr;
 
-	Visitor(const Visitor& other) = delete;
-	Visitor(Visitor&& other) = delete;
+	NewVisitor(const NewVisitor& other) = delete;
+	NewVisitor(NewVisitor&& other) = delete;
 
 public:
-	Visitor(lp::Driver& driver, std::vector<path> includeDirs)
+	Document document;
+
+	NewVisitor(lp::Driver& driver, std::vector<path> includeDirs)
 			: logger(lp::log::getLogger("parser")), document({driver}), includeDirs(includeDirs), scriptctx(nullptr) {
 		engine.init(&document);
 		scriptctx = std::move(engine.createContext());
@@ -57,7 +68,7 @@ public:
 		document.pushFont("cmr12");
 	}
 
-	virtual ~Visitor() {
+	virtual ~NewVisitor() {
 		doctype = nullptr;	 /* Destroy doctype */
 		scriptctx.destroy(); /* Destroy context */
 		engine.deinit();
@@ -72,31 +83,21 @@ public:
 		return std::nullopt;
 	}
 
-	virtual std::any visitFile(jointparserParser::FileContext* ctx) override {
-		visitChildren(ctx);
-		document.flush();
-		return document;
-	}
-
-	virtual std::any visitP_import_expr(jointparserParser::P_import_exprContext* ctx) override {
-		auto modname = std::any_cast<std::string>(visitIdent(ctx->name));
-		logger->trace("Importing module: {}", modname);
-		auto modpath = getModulePath(modname);
+	virtual void visitImport(const std::string& moduleName) override {
+		logger->trace("Importing module: {}", moduleName);
+		auto modpath = getModulePath(moduleName);
 		if (!modpath.has_value()) {
-			logger->critical("Failed to load module {}: Not found", modname);
-			return defaultResult();
+			logger->critical("Failed to load module {}: Not found", moduleName);
 		} else {
 			loadedModules.push_back(engine.loadModule(modpath.value()));
-			return defaultResult();
 		}
 	}
 
-	virtual std::any visitP_doctype_expr(jointparserParser::P_doctype_exprContext* ctx) override {
+	virtual void visitDoctype(const std::string& doctypename, const std::map<std::string, std::any>& args) override {
 		if (doctype) {
 			logger->critical("Found a second doctype declaration");
 			abort(); /** \todo more graceful shutdown */
 		}
-		auto doctypename = std::any_cast<std::string>(visitIdent(ctx->name));
 		logger->trace("Loading document type {}", doctypename);
 		/** \todo remove hardcoded module to load docclass from **/
 		doctype = scriptctx.instantiateDocumentClass(doctypename, loadedModules[0]);
@@ -104,8 +105,7 @@ public:
 			logger->critical("Document type {} was not found", doctypename);
 			abort(); /** \todo more graceful shutdown */
 		}
-		if (ctx->args != nullptr) {
-			auto args = std::any_cast<std::map<std::string, std::any>>(visitDict(ctx->args));
+		if (!args.empty()) {
 			logger->debug("Arguments:");
 			for (auto&& [key, value] : args) {
 				if (value.type() == typeid(std::string)) {
@@ -121,93 +121,31 @@ public:
 		} else {
 			logger->debug("Arguments: <empty>");
 		}
-		return defaultResult();
 	}
 
-	virtual std::any visitContent(jointparserParser::ContentContext* ctx) override { return visitChildren(ctx); }
-
-	virtual std::any visitContent_part(jointparserParser::Content_partContext* ctx) override {
-		return visitChildren(ctx);
+	virtual void visitCommand(const std::string& command, std::vector<LPValue> args) {
+		/** \todo: don't hardcode the module to load from **/
+		if (scriptctx.invokeMethod(command, args, loadedModules[0])) {
+		} else if (scriptctx.invokeMethod(command, args, document, engine)) {
+		} else {
+			logger->critical("Could not invoke {}", command);
+			abort(); /** \todo more graceful shutdown **/
+		}
 	}
-
-	virtual std::any visitCharacter(jointparserParser::CharacterContext* ctx) override {
-		char32_t character = from_utf8(ctx->getText());
-		document.addCharacter(character);
-		return defaultResult();
-	}
-
-	virtual std::any visitSpace(jointparserParser::SpaceContext* ctx) override {
-		document.addWhitespace();
-		return defaultResult();
-	}
-
-	virtual std::any visitActive_seq(jointparserParser::Active_seqContext* ctx) override {
-		/** For now only one active sequence is supported: \n\n */
-		document.writeParagraph();
-		return defaultResult();
-	}
-
-	virtual std::any visitCommand(jointparserParser::CommandContext* ctx) override { return visitChildren(ctx); }
-
-	virtual std::any visitValue(jointparserParser::ValueContext* ctx) override { return visitChildren(ctx); }
-
-	virtual std::any visitText(jointparserParser::TextContext* ctx) override { return ctx->getText(); }
-
-	virtual std::any visitNumber(jointparserParser::NumberContext* ctx) override { return std::stof(ctx->getText()); }
-
-	virtual std::any visitArray(jointparserParser::ArrayContext* ctx) override {
-		std::vector<std::any> vec;
-		for (auto child : ctx->entries)
-			vec.push_back(visitValue(child));
-		return vec;
-	}
-
-	virtual std::any visitDict(jointparserParser::DictContext* ctx) override {
-		std::map<std::string, std::any> dict;
-		for (auto entry : ctx->entries)
-			dict.insert(std::any_cast<decltype(dict)::value_type>(visitDict_entry(entry)));
-		return dict;
-	}
-
-	virtual std::any visitDict_entry(jointparserParser::Dict_entryContext* ctx) override {
-		auto key = std::any_cast<std::string>(visitIdent(ctx->key));
-		auto value = visitValue(ctx->val);
-		return std::pair<const std::string, std::any>(std::move(key), std::move(value));
-	}
-
-	virtual std::any visitIdent(jointparserParser::IdentContext* ctx) override { return ctx->getText(); }
-
-	//virtual std::any visitDigit(jointparserParser::DigitContext* ctx) override { return std::stoi(ctx->getText()); }
-
-	//virtual std::any visitAlpha(jointparserParser::AlphaContext* ctx) override { return ctx->getText(); }
+	virtual void visitWhitespace() { document.addWhitespace(); }
+	virtual void visitCharacter(char32_t c) { document.addCharacter(c); }
 };
-
-lp::Parser::Parser(Driver& driver) : logger(lp::log::getLogger("parser")), driver(driver) {}
-
-Document lp::Parser::parse(const path& input, std::vector<path> includeDirs) noexcept {
-	std::ifstream stream(input, std::ios::binary);
-	return parse(stream, includeDirs);
-}
-
-Document lp::Parser::parse(const std::string& string, std::vector<path> includeDirs) noexcept {
-	std::istringstream stream(string);
-	return parse(stream, includeDirs);
-}
 
 Document lp::Parser::parse(std::istream& input, std::vector<path> includeDirs) noexcept {
 	logger->info("Parsing");
 	auto start = std::chrono::steady_clock::now();
-	ANTLRInputStream stream(input);
-	jointparserLexer lexer(&stream);
-	CommonTokenStream tokens(&lexer);
-	jointparserParser parser(&tokens);
-
-	Visitor visitor(driver, includeDirs);
-	auto doc = std::any_cast<Document>(visitor.visit(parser.file()));
+	NewVisitor visitor(driver, includeDirs);
+	lp::LPParser parser{input, visitor};
+	parser.parseFile();
+	visitor.document.flush();
 
 	auto stop = std::chrono::steady_clock::now();
 	auto time = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 	logger->info("Parsing done (took {} ms)", time.count());
-
-	return doc;
+	return visitor.document;
 }

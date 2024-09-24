@@ -66,21 +66,6 @@ target_sources(letterpress PRIVATE
 )
 target_include_directories(letterpress PUBLIC ${angelscript_SOURCE_DIR}/add_on)
 
-# ANTLR4
-# required if linking to static library
-add_definitions(-DANTLR4CPP_STATIC)
-# using /MD flag for antlr4_runtime (for Visual C++ compilers only)
-set(ANTLR4_WITH_STATIC_CRT OFF)
-set(ANTLR_EXECUTABLE ${PROJECT_SOURCE_DIR}/thirdparty/antlr-4.13.0-complete.jar)
-include(ExternalAntlr4Cpp)
-target_include_directories(letterpress PUBLIC ${ANTLR4CPP_INCLUDE_DIRS})
-
-find_package(ANTLR REQUIRED)
-antlr_target(LPGrammar ${CMAKE_CURRENT_LIST_DIR}/letterpress/parser/jointparser.g4 LEXER PARSER VISITOR PACKAGE lp)
-target_link_libraries(letterpress antlr4_static)
-target_include_directories(letterpress PUBLIC ${ANTLR_LPGrammar_OUTPUT_DIR})
-target_sources(letterpress PUBLIC ${ANTLR_LPGrammar_CXX_OUTPUTS})
-
 # QPDF
 FetchContent_Declare(QPDF GIT_REPOSITORY https://github.com/qpdf/qpdf.git GIT_TAG v11.9.1)
 FetchContent_MakeAvailable(QPDF)

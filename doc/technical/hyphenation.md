@@ -1,4 +1,7 @@
-Source: Appendix H of the TeXBook
+\page technicalHyphenation Hyphenation
+\tableofcontents
+
+Source: Appendix H of the TeXBook \cite knuthTeXbook1986
 
 \note The simplest solution was chosen for now. It it proves too inefficient, more optimized datastructures could be
 used. For example, maybe a Prefix Tree would be more efficient for matching subwords?

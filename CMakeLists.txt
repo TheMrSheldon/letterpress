@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
-option(BUILD_TESTS "Build tests" ON)
+option(LP_BUILD_TESTS "Build tests" ON)
+option(LP_BUILD_DOCS "Build documentation" ON)
+option(LP_BUILD_DEB "Build debian package" ON)
+option(LP_ONLY_DOCS "Build only documentation -- this disables tests and others" OFF)
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
 ######################################################
@@ -17,14 +20,16 @@ message("Compiling Letterpress v${LETTERPRESS_VERSION}")
 
 
 set(CMAKE_INSTALL_BINDIR "${CMAKE_CURRENT_LIST_DIR}/bin/")
-add_subdirectory(src)
+if (NOT LP_ONLY_DOCS)
+	add_subdirectory(src)
+endif()
 
 ##########################################################################################
 # Testing
 ##########################################################################################
 # Testing only available if this is the main app
 # Emergency override MODERN_CMAKE_BUILD_TESTING provided as well
-if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR MODERN_CMAKE_BUILD_TESTING) AND BUILD_TESTS)
+if(NOT LP_ONLY_DOCS AND (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR MODERN_CMAKE_BUILD_TESTING) AND LP_BUILD_TESTS)
 	enable_testing()
 	add_subdirectory(tests)
 endif()
@@ -33,7 +38,7 @@ endif()
 # Documentation
 ##########################################################################################
 # Documentation only available if this is the main app
-if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME) AND LIBDL_BUILD_DOCS)
+if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME) AND LP_BUILD_DOCS)
 	find_package(Doxygen REQUIRED)
 	include(FetchContent)
 
@@ -44,19 +49,19 @@ if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME) AND LIBDL_BUILD_DOCS)
 	FetchContent_MakeAvailable(cppreftags)
 
 	## Set Doxygen configuration options (THIS REPLACES THE DOXYFILE!)
-	set(DOXYGEN_PROJECT_BRIEF "Simple yet powerful deep learning")
-	set(DOXYGEN_PROJECT_LOGO "thirdparty/twemoji-brain.png")
+	set(DOXYGEN_PROJECT_BRIEF "Typesetting made easy")
+	set(DOXYGEN_PROJECT_LOGO "logo.svg")
 	set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/documentation)
 	set(DOXYGEN_STRIP_FROM_PATH "include")
 	set(DOXYGEN_EXTRACT_PRIVATE "NO")
 	set(DOXYGEN_EXTRACT_STATIC "YES")
 	set(DOXYGEN_USE_MATHJAX "YES")
-	set(DOXYGEN_USE_MDFILE_AS_MAINPAGE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+	set(DOXYGEN_USE_MDFILE_AS_MAINPAGE "${CMAKE_CURRENT_SOURCE_DIR}/readme.md")
 	set(DOXYGEN_SOURCE_BROWSER "YES")
 	set(DOXYGEN_INLINE_SOURCES "YES")
-	set(DOXYGEN_IMAGE_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/docs/media)
+	set(DOXYGEN_IMAGE_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/doc/media)
 	set(DOXYGEN_EXAMPLE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/examples)
-	set(DOXYGEN_CITE_BIB_FILES ${CMAKE_CURRENT_SOURCE_DIR}/docs/references.bib)
+	set(DOXYGEN_CITE_BIB_FILES ${CMAKE_CURRENT_SOURCE_DIR}/doc/references.bib)
 	set(DOXYGEN_TAGFILES "${cppreftags_SOURCE_DIR}/cppreference-doxygen-web.tag.xml=http://en.cppreference.com/w/")
 
 	set(DOXYGEN_GENERATE_HTML "YES")
@@ -75,12 +80,36 @@ if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME) AND LIBDL_BUILD_DOCS)
 	## Build Documentation
 	doxygen_add_docs(
 		letterpress_docs
-		${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/README.md ${CMAKE_CURRENT_SOURCE_DIR}/docs
+		${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/readme.md ${CMAKE_CURRENT_SOURCE_DIR}/doc
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	)
 
 	# Copy Files over that Doxygen has not found (hopefully Doxygen will do this automatically in the future)
 	add_custom_command(TARGET letterpress_docs POST_BUILD
-    	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/twemoji-brain.svg ${DOXYGEN_OUTPUT_DIRECTORY}/html/thirdparty/twemoji-brain.svg
+    	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/logo.svg ${DOXYGEN_OUTPUT_DIRECTORY}/html/thirdparty/twemoji-brain.svg
 	)
+endif()
+
+
+###########################################################################################
+# Debian Package
+##########################################################################################
+# Debian Packaging only available if this is the main app
+if(NOT LP_ONLY_DOCS AND (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME) AND LP_BUILD_DEB)
+	install(TARGETS letterpressexe ARCHIVE DESTINATION lib COMPONENT letterpress)
+	# TODO add install targets for the letterpress standard library
+	cpack_add_component(letterpress)
+
+	SET(CPACK_GENERATOR "DEB")
+	SET(CPACK_PACKAGE_NAME "letterpress")
+	SET(CPACK_SET_DESTDIR TRUE)
+	SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "not-set")
+	SET(CPACK_PACKAGE_VERSION ${LETTERPRESS_VERSION})
+	include(GNUInstallDirs)
+	SET(CPACK_DEBIAN_PACKAGE_DESCRIPTION "Typesetting made easy")
+	SET(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/readme.md")
+	# SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+	SET(CPACK_DEBIAN_PACKAGE_DEPENDS "")  # TODO add dependencies
+	SET(CPACK_PACKAGE_VENDOR "")
+	include(CPack)
 endif()

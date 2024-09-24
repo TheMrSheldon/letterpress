@@ -10,7 +10,7 @@ apt-get update
 apt-get -y install g++-13 cmake git antlr4
 
 # Needed for the dev environment
-apt-get -y install build-essential cppcheck flawfinder doxygen graphviz gdb clang-tidy clang-format
+apt-get -y install build-essential cppcheck flawfinder doxygen graphviz gdb clang-tidy clang-format texlive-base
 
 # Dependencies of libqpdf
 apt-get -y install zlib1g-dev libjpeg-dev

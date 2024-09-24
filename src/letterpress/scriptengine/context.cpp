@@ -55,24 +55,24 @@ std::shared_ptr<lp::doc::IDocClass> Context::instantiateDocumentClass(std::strin
 		return nullptr;
 	context->Prepare(factory);
 	context->Execute();
-	auto obj = *(asIScriptObject**)context->GetAddressOfReturnValue();
+	auto obj = *static_cast<asIScriptObject**>(context->GetAddressOfReturnValue());
 	return std::make_shared<ScriptDocClass>(obj);
 }
 
-bool Context::invokeMethod(std::string name, std::vector<std::string> arguments, Module& module) {
+bool Context::invokeMethod(std::string name, std::vector<std::any>& arguments, Module& module) {
 	/** \todo fix hardcoded decl **/
 	auto func = module.module->GetFunctionByDecl((std::string("void ") + name + "(string)").c_str());
 	if (func == nullptr)
 		return false;
 	context->Prepare(func);
 	for (auto i = 0u; i < arguments.size(); ++i)
-		context->SetArgObject(i, &arguments[i]);
+		context->SetArgObject(i, &std::any_cast<std::string&>(arguments[i]));
 	context->Execute();
 	return true;
 }
 
 bool Context::invokeMethod(
-		std::string name, std::vector<std::string> arguments, lp::doc::Document& document, ScriptEngine& engine
+		std::string name, std::vector<std::any>& arguments, lp::doc::Document& document, ScriptEngine& engine
 ) {
 	/** \todo support non-global functions **/
 	/** \todo fix hardcoded decl **/
@@ -84,7 +84,7 @@ bool Context::invokeMethod(
 		return false;
 	context->Prepare(func);
 	for (auto i = 0u; i < arguments.size(); ++i)
-		context->SetArgObject(i, &arguments[i]);
+		context->SetArgObject(i, &std::any_cast<std::string&>(arguments[i]));
 	context->Execute();
 	return true;
 }

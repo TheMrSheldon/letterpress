@@ -22,7 +22,7 @@ namespace lp::doc {
 
 	struct Kerning final : public Box {};
 
-	/** http://www.eprg.org/G53DOC/pdfs/knuth-plass-breaking.pdf **/
+	/** \cite knuthBreakingParagraphsLines1981 **/
 	struct Glue final {
 		/** Typically: 1/3 em **/
 		Dimension idealwidth;

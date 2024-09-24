@@ -12,8 +12,8 @@
 		"vscode": {
 			"extensions": [
 				"ms-vscode.cpptools-extension-pack",
-				"mike-lischke.vscode-antlr4",
-				"jbenden.c-cpp-flylint"
+				"jbenden.c-cpp-flylint",
+				"ms-vscode.live-server"
 			]
 		}
 	},

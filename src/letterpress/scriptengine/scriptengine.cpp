@@ -18,6 +18,11 @@ ScriptEngine::~ScriptEngine() {
 		angelscript->ShutDownAndRelease();
 }
 
+void writeString(lp::doc::Document* d, std::string s) {
+	for (char c : s)
+		d->addCharacter(c);
+}
+
 #include <iostream>
 
 bool ScriptEngine::init(lp::doc::Document* doc) {
@@ -41,9 +46,19 @@ bool ScriptEngine::init(lp::doc::Document* doc) {
 				"void popFont()", asMETHOD(lp::doc::Document, popFont), asCALL_THISCALL_ASGLOBAL, doc
 		);
 		assert(r >= 0);
+		r = angelscript->RegisterGlobalFunction(
+				"void writeString(string)", asFunctionPtr(writeString), asCALL_CDECL_OBJFIRST, doc
+		);
+		assert(r >= 0);
 	} else {
+		r = angelscript->RegisterGlobalFunction("void par()", asSFuncPtr(), asCALL_CDECL);
+		assert(r >= 0);
 		r = angelscript->RegisterGlobalFunction("void pushFont(string)", asSFuncPtr(), asCALL_CDECL);
+		assert(r >= 0);
 		r = angelscript->RegisterGlobalFunction("void popFont()", asSFuncPtr(), asCALL_CDECL);
+		assert(r >= 0);
+		r = angelscript->RegisterGlobalFunction("void writeString(string)", asSFuncPtr(), asCALL_CDECL);
+		assert(r >= 0);
 	}
 	return true;
 }

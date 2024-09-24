@@ -2,6 +2,7 @@
 
 #include "../document/idocclass.hpp"
 
+#include <any>
 #include <memory>
 #include <string>
 #include <vector>
@@ -34,9 +35,8 @@ namespace lp::script {
 		void destroy();
 
 		std::shared_ptr<lp::doc::IDocClass> instantiateDocumentClass(std::string name, Module& module);
-		bool invokeMethod(std::string name, std::vector<std::string> arguments, Module& module);
-		bool invokeMethod(
-				std::string name, std::vector<std::string> arguments, lp::doc::Document& doc, ScriptEngine& engine
-		);
+		bool invokeMethod(std::string name, std::vector<std::any>& arguments, Module& module);
+		bool
+		invokeMethod(std::string name, std::vector<std::any>& arguments, lp::doc::Document& doc, ScriptEngine& engine);
 	};
 } // namespace lp::script

@@ -61,7 +61,7 @@ namespace lp::doc {
 		void ship(AnyBox& top, HBox& hbox) const;
 
 	public:
-		Document(lp::Driver& driver) noexcept;
+		explicit Document(lp::Driver& driver) noexcept;
 
 		void pushFont(std::string font) noexcept;
 		void popFont() noexcept;
