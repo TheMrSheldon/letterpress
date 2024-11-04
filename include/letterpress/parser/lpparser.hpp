@@ -178,7 +178,7 @@ namespace lp {
 	const std::regex LPParser::QuotedString{
 			"\\\"(\\\\\\\"|[^\"])*\\\"", std::regex_constants::nosubs | std::regex_constants::optimize
 	};
-	const std::regex LPParser::Par{"\\n\\s+\\n", std::regex_constants::nosubs | std::regex_constants::optimize};
+	const std::regex LPParser::Par{"\\n\\s*\\n", std::regex_constants::nosubs | std::regex_constants::optimize};
 } // namespace lp
 
 #endif

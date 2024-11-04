@@ -42,7 +42,8 @@ void Document::ship(AnyBox& top, HBox& hbox) const {
 	std::visit(
 			[&hbox](auto& top) {
 				auto lines = lp::doc::linebreaking(hbox);
-				top.content.insert(top.content.end(), lines.cbegin(), lines.cend());
+				for (auto&& box : lines)
+					top.content.emplace_back(box);
 			},
 			top
 	);
@@ -82,7 +83,6 @@ void Document::addCharacter(char32_t character) {
 		auto& vbox = std::get<VBox>(boxes.top());
 		boxes.push(HBox{{.width = vbox.width}});
 	}
-	/** \todo check font for kerning **/
 	/** \todo get width, height, and depth **/
 	auto& font = fonts.top();
 	assert(font.get() != nullptr);
@@ -110,9 +110,9 @@ void Document::addCharacter(char32_t character) {
 
 void Document::addWhitespace() {
 	if (mode == Mode::RestHorizMode || mode == Mode::UnrestHorizMode) {
-		/** \todo insert correct glue **/
+		/** \todo Resolve EM with actual font size **/
 		auto& hbox = std::get<HBox>(boxes.top());
-		hbox.content.push_back(Glue((1_em / 3).resolve(12, 0))); /** \todo Resolve EM with actual font size **/
+		hbox.content.push_back(Glue((1_em / 3).resolve(12, 0), (1_em / 6).resolve(12, 0), (1_em / 9).resolve(12, 0)));
 	}
 }
 
@@ -125,6 +125,8 @@ void Document::writeParagraph() {
 		mode = Mode::VertMode;
 		auto hbox = std::get<HBox>(boxes.top());
 		boxes.pop();
+		/** \todo add infinite stretch where fitting **/
+		hbox << Glue{.idealwidth = 0_pt, .stretchability = 1000000_pt, .shrinkability = 0_pt};
 		ship(boxes.top(), hbox);
 	} else {
 		/** Do nothing. **/

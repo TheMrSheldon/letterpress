@@ -1,8 +1,10 @@
 #pragma once
 
 #include "../pdf/utils/fontfile.hpp"
+#include "../utils/generator.hpp"
 #include "dimension.hpp"
 
+#include <concepts>
 #include <memory>
 #include <variant>
 #include <vector>
@@ -14,6 +16,9 @@ namespace lp::doc {
 		Dimension height;
 		Dimension depth;
 	};
+
+	template <typename T>
+	concept is_box = std::derived_from<T, Box>;
 
 	struct Glyph final : public Box {
 		char32_t charcode;
@@ -67,6 +72,6 @@ namespace lp::doc {
 		}
 	};
 
-	std::vector<HBox> linebreaking(const HBox& hbox);
+	std::generator<HBox> linebreaking(const HBox& hbox);
 
 }; // namespace lp::doc
