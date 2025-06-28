@@ -4,8 +4,7 @@
 	],
 	"C_Cpp.autoAddFileAssociations": false,
 	"files.exclude": {
-		"**/.antlr": true,
-		"build": true
+		"build": false
 	},
 	"editor.formatOnSave": true,
 	"C_Cpp.codeAnalysis.clangTidy.enabled": true,

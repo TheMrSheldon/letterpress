@@ -1,6 +1,7 @@
 #ifndef LETTERPRESS_PARSER_PARSER_HPP
 #define LETTERPRESS_PARSER_PARSER_HPP
 
+#include <cassert>
 #include <istream>
 #include <iterator>
 #include <queue>
@@ -65,14 +66,14 @@ namespace lp {
 		std::deque<char32_t> lookAheadBuffer;
 
 		const char32_t& lookAhead(unsigned offset) noexcept {
-			while (offset >= lookAheadBuffer.size() && !stream.eof()) {
+			while (offset >= lookAheadBuffer.size()) {
 				/** \todo add support for utf8 **/
 				char c;
 				stream.read(&c, 1);
+				if (!stream)
+					return eof;
 				lookAheadBuffer.push_back(c);
 			}
-			if (offset >= lookAheadBuffer.size())
-				return eof;
 			return lookAheadBuffer[offset];
 		}
 
@@ -114,10 +115,6 @@ namespace lp {
 	public:
 		explicit GenericParser(std::istream& stream) : stream(stream) {}
 	};
-
-	ParserLookAheadIter::value_type ParserLookAheadIter::operator*() const noexcept {
-		return parser->lookAhead(offset);
-	}
 } // namespace lp
 
 #endif

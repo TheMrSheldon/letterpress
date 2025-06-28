@@ -22,5 +22,11 @@ namespace lp {
 		virtual ~PDFDriver();
 
 		virtual void shipout(const lp::doc::VBox& page) override;
+
+		virtual void setAuthor(std::optional<std::string> author) override;
+		virtual void setDate(std::optional<std::string> date) override;
+		virtual void setTitle(std::optional<std::string> title) override;
+		virtual void setDescription(std::optional<std::string> description) override;
+		virtual void setKeywords(std::vector<std::string> keywords) override;
 	};
 } // namespace lp

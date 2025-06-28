@@ -215,7 +215,7 @@ namespace lp::pdf::utils {
 		ContentStreamWriter& showTextLineAndSpace(float aw, float ac, std::string text) noexcept {
 			return write<Operator::ShowTextLineAndSpace>(aw, ac, text);
 		}
-		/*TODO*/
+		/** \todo **/
 		/**
 		 * @brief Show one or more text strings, allowing individual glyph positioning (see implementation note 58 in
 		 * Appendix H). Each element of array can be a string or anumber. If the element is a string, this operator
@@ -232,6 +232,137 @@ namespace lp::pdf::utils {
 		ContentStreamWriter& showTextAdjusted(lp::pdf::Array param) noexcept {
 			return write<Operator::ShowTextAdjusted>(param);
 		}
+
+		/**************************************************************************************************************/
+		/* GRAPHICS OPERATIONS                                                                                        */
+		/**************************************************************************************************************/
+
+		/**
+		 * @brief Begin a new subpath by moving the current point to coordinates (x, y), omitting any connecting line
+		 * segment. If the previous path construction operator in the current path was also m, the new m overrides it;
+		 * no vestige of the previous m operation remains in the path. (p. 167 \cite PDF20)
+		 * 
+		 * @param x 
+		 * @param y 
+		 * @return 
+		 */
+		ContentStreamWriter& moveTo(float x, float y) noexcept { return write<Operator::MoveTo>(x, y); }
+		/**
+		 * @brief Append a straight line segment from the current point to the point (x, y). The new current point shall
+		 * be (x, y) (p. 167 \cite PDF20)
+		 * 
+		 * @param x 
+		 * @param y 
+		 * @return 
+		 */
+		ContentStreamWriter& lineTo(float x, float y) noexcept { return write<Operator::LineTo>(x, y); }
+		/**
+		 * @brief Append a cubic Bézier curve to the current path. The curve shall extend from the current point to the
+		 * point (x3, y3), using (x1, y1 ) and (x2, y2 ) as the Bézier control points (see 8.5.2.2, "Cubic Bézier
+		 * curves"). The new current point shall be (x3, y3 ). (p. 167 \cite PDF20)
+		 * 
+		 * @param x1 
+		 * @param y1 
+		 * @param x2 
+		 * @param y2 
+		 * @param x3 
+		 * @param y3 
+		 * @return 
+		 */
+		ContentStreamWriter& curveTo(float x1, float y1, float x2, float y2, float x3, float y3) noexcept {
+			return write<Operator::CurveTo>(x1, y1, x2, y2, x3, y3);
+		}
+		/**
+		 * @brief Append a cubic Bézier curve to the current path. The curve shall extend from the current point to the
+		 * point (x3, y3 ), using the current point and (x2, y2 ) as the Bézier control points (see 8.5.2.2, "Cubic
+		 * Bézier curves"). The new current point shall be (x3, y3 ). (p. 167 \cite PDF20)
+		 * 
+		 * @param x2 
+		 * @param y2 
+		 * @param x3 
+		 * @param y3 
+		 * @return 
+		 */
+		ContentStreamWriter& curveToReplicateInitialPoint(float x2, float y2, float x3, float y3) noexcept {
+			return write<Operator::CurveToReplicateInitialPoint>(x2, y2, x3, y3);
+		}
+		/**
+		 * @brief Append a cubic Bézier curve to the current path. The curve shall extend from the current point to the
+		 * point (x3, y3 ), using (x1, y1 ) and (x3, y3 ) as the Bézier control points (see 8.5.2.2, "Cubic Bézier
+		 * curves"). The new current point shall be (x3, y3 ). (p. 167 \cite PDF20)
+		 * 
+		 * @param x1 
+		 * @param y1 
+		 * @param x3 
+		 * @param y3 
+		 * @return 
+		 */
+		ContentStreamWriter& curveToReplicateFinalPoint(float x1, float y1, float x3, float y3) noexcept {
+			return write<Operator::CurveToReplicateFinalPoint>(x1, y1, x3, y3);
+		}
+		/**
+		 * @brief Close the current subpath by appending a straight line segment from the current point to the starting
+		 * point of the subpath. If the current subpath is already closed, h shall do nothing. This operator terminates
+		 * the current subpath. Appending another segment to the current path shall begin a new subpath, even if the new
+		 * segment begins at the endpoint reached by the h operation. (p. 167 \cite PDF20)
+		 * 
+		 * @return 
+		 */
+		ContentStreamWriter& closePath() noexcept { return write<Operator::ClosePath>(); }
+		/**
+		 * @brief Append a rectangle to the current path as a complete subpath, with lower-left corner (x, y) and
+		 * dimensions width and height in user space. (p. 167 \cite PDF20)
+		 * @details The operation: `x y width height re` is equivalent to:
+		 * ```
+		 * x y m
+		 * (x + width) y l
+		 * (x + width) (y + height) l
+		 * x (y + height) l+
+		 * h
+		 * ```
+		 * 
+		 * @param x 
+		 * @param y 
+		 * @param width 
+		 * @param height 
+		 * @return 
+		 */
+		ContentStreamWriter& appendRect(float x, float y, float width, float height) noexcept {
+			return write<Operator::AppendRect>(x, y, width, height);
+		}
+
+		/**
+		 * @brief Stroke the path. (p. 170 \cite PDF20)
+		 * 
+		 * @return 
+		 */
+		ContentStreamWriter& stroke() noexcept { return write<Operator::Stroke>(); }
+
+		/**
+		 * @brief Close and stroke the path. This operator shall have the same effect as the sequence h S. (p. 170
+		 * \cite PDF20)
+		 * 
+		 * @return 
+		 */
+		ContentStreamWriter& closeAndStroke() noexcept { return write<Operator::CloseAndStroke>(); }
+
+		ContentStreamWriter& fillNonZero() noexcept { return write<Operator::FillNonZero>(); }
+
+		ContentStreamWriter& fillEvenOdd() noexcept { return write<Operator::FillEvenOdd>(); }
+
+		ContentStreamWriter& fillNonZeroAndStroke() noexcept { return write<Operator::FillNonZeroAndStroke>(); }
+
+		ContentStreamWriter& fillEvenOddAndStroke() noexcept { return write<Operator::FillEvenOddAndStroke>(); }
+
+		ContentStreamWriter& closeFillNonZeroAndStroke() noexcept {
+			return write<Operator::CloseFillNonZeroAndStroke>();
+		}
+
+		ContentStreamWriter& closeFillEvenOddAndStroke() noexcept {
+			return write<Operator::CloseFillNonZeroAndStroke>();
+		}
+
+		ContentStreamWriter& endPath() noexcept { return write<Operator::ClosePath>(); }
 
 		std::string getContent() const noexcept { return content.str(); }
 	};

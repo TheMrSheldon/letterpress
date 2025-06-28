@@ -94,6 +94,71 @@ PageContentStream& PageContentStream::nextLine() {
 	stream.nextLine();
 	return *this;
 }
+PageContentStream& PageContentStream::moveTo(float x, float y) {
+	assert(!inTextMode);
+	stream.moveTo(x, y); /** \todo update internal state **/
+	return *this;
+}
+PageContentStream& PageContentStream::lineTo(float x, float y) {
+	assert(!inTextMode);
+	stream.lineTo(x, y); /** \todo update internal state **/
+	return *this;
+}
+PageContentStream& PageContentStream::closePath() {
+	assert(!inTextMode);
+	stream.closePath(); /** \todo update internal state **/
+	return *this;
+}
+PageContentStream& PageContentStream::appendRect(float posx, float posy, float width, float height) {
+	assert(!inTextMode);
+	stream.appendRect(posx, posy, width, height); /** \todo update internal state **/
+	return *this;
+}
+PageContentStream& PageContentStream::stroke() {
+	assert(!inTextMode);
+	stream.stroke(); /** \todo update internal state **/
+	return *this;
+}
+PageContentStream& PageContentStream::closeAndStroke() {
+	assert(!inTextMode);
+	stream.closeAndStroke(); /** \todo update internal state **/
+	return *this;
+}
+PageContentStream& PageContentStream::fillNonZero() {
+	assert(!inTextMode);
+	stream.fillNonZero(); /** \todo update internal state **/
+	return *this;
+}
+PageContentStream& PageContentStream::fillEvenOdd() {
+	assert(!inTextMode);
+	stream.fillEvenOdd(); /** \todo update internal state **/
+	return *this;
+}
+PageContentStream& PageContentStream::fillNonZeroAndStroke() {
+	assert(!inTextMode);
+	stream.fillNonZeroAndStroke(); /** \todo update internal state **/
+	return *this;
+}
+PageContentStream& PageContentStream::fillEvenOddAndStroke() {
+	assert(!inTextMode);
+	stream.fillEvenOddAndStroke(); /** \todo update internal state **/
+	return *this;
+}
+PageContentStream& PageContentStream::closeFillNonZeroAndStroke() {
+	assert(!inTextMode);
+	stream.closeFillNonZeroAndStroke(); /** \todo update internal state **/
+	return *this;
+}
+PageContentStream& PageContentStream::closeFillEvenOddAndStroke() {
+	assert(!inTextMode);
+	stream.closeFillEvenOddAndStroke(); /** \todo update internal state **/
+	return *this;
+}
+PageContentStream& PageContentStream::endPath() {
+	assert(!inTextMode);
+	stream.endPath(); /** \todo update internal state **/
+	return *this;
+}
 
 void PageContentStream::flush() {
 	handle.replaceStreamData(stream.getContent(), QPDFObjectHandle::newNull(), QPDFObjectHandle::newNull());

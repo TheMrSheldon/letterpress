@@ -30,7 +30,7 @@
 - [FreeType](https://gitlab.freedesktop.org/freetype/freetype.git)
 - [AngelScript]( https://www.angelcode.com/angelscript/)
 - [CLI11](https://github.com/CLIUtils/CLI11)
-- [ANTLR](https://github.com/antlr/antlr4)
+- [Apache PDFBox](https://pdfbox.apache.org/) &mdash; While Apache PDBox is not used directly in this project, we took great inspiration from its ammazing API design to interact with PDF files.
 
 ## Tools
 - [Doxygen Awesome](https://jothepro.github.io/doxygen-awesome-css/)

@@ -1,6 +1,10 @@
 #include <letterpress/parser.hpp>
 
 #include <letterpress/parser/lpparser.hpp>
+#include <letterpress/scriptengine/method.hpp>
+#include <letterpress/utils/overloaded.hpp>
+
+#include <angelscript.h>
 
 #include <fstream>
 
@@ -45,6 +49,7 @@ class NewVisitor : public LPVisitor {
 
 private:
 	using DoctypeArgs = std::map<std::string, std::any>;
+	LPParser* parser;
 
 	lp::log::LoggerPtr logger;
 	ScriptEngine engine;
@@ -52,6 +57,7 @@ private:
 	std::vector<path> includeDirs;
 
 	std::vector<Module> loadedModules;
+	asIScriptObject* doctypeScriptObject;
 	std::shared_ptr<IDocClass> doctype = nullptr;
 
 	NewVisitor(const NewVisitor& other) = delete;
@@ -61,7 +67,8 @@ public:
 	Document document;
 
 	NewVisitor(lp::Driver& driver, std::vector<path> includeDirs)
-			: logger(lp::log::getLogger("parser")), document({driver}), includeDirs(includeDirs), scriptctx(nullptr) {
+			: parser(nullptr), logger(lp::log::getLogger("parser")), document({driver}), includeDirs(includeDirs),
+			  scriptctx(nullptr) {
 		engine.init(&document);
 		scriptctx = std::move(engine.createContext());
 		/** \todo remove hardcoded font **/
@@ -73,6 +80,8 @@ public:
 		scriptctx.destroy(); /* Destroy context */
 		engine.deinit();
 	}
+
+	void setParser(LPParser& parser) { this->parser = &parser; }
 
 	std::optional<path> getModulePath(const std::string& moduleName) const noexcept {
 		for (auto&& dir : includeDirs) {
@@ -93,47 +102,103 @@ public:
 		}
 	}
 
-	virtual void visitDoctype(const std::string& doctypename, const std::map<std::string, std::any>& args) override {
+	virtual void visitDoctype(const std::string& doctypename, const LPDict& args) override {
 		if (doctype) {
-			logger->critical("Found a second doctype declaration");
+			logger->critical("Found a second doctype declaration: {}", doctypename);
+			/** \todo Instead of shutting down here, we should add a flag (e.g., -fdouble-doctype) that toggles between
+			 *  failing when the method does not exist or simply warning about it. **/
 			abort(); /** \todo more graceful shutdown */
 		}
 		logger->trace("Loading document type {}", doctypename);
 		/** \todo remove hardcoded module to load docclass from **/
-		doctype = scriptctx.instantiateDocumentClass(doctypename, loadedModules[0]);
+		doctype = scriptctx.instantiateDocumentClass(doctypename, args, loadedModules[0], doctypeScriptObject);
 		if (doctype == nullptr) {
 			logger->critical("Document type {} was not found", doctypename);
+			/** \todo Instead of shutting down here, we should add a flag (e.g., -fmissing-doctype) that toggles between
+			 *  failing when the method does not exist or simply warning about it. **/
 			abort(); /** \todo more graceful shutdown */
 		}
 		if (!args.empty()) {
 			logger->debug("Arguments:");
 			for (auto&& [key, value] : args) {
-				if (value.type() == typeid(std::string)) {
-					logger->debug("    {:10}:    {}", key, std::any_cast<std::string>(value));
-				} else if (value.type() == typeid(float)) {
-					logger->debug("    {:10}:    {}", key, std::any_cast<float>(value));
-				} else if (value.type() == typeid(std::vector<std::any>)) {
-					logger->debug("    {:10}:    <>", key);
-				} else {
-					logger->debug("    {:10}:    ???", key);
-				}
+				std::visit(
+						lp::utils::overloaded{
+								[this, key](const LPArray& array) { logger->debug("    {:10}:    <>", key); },
+								[this, key](const LPDict& dict) { logger->debug("    {:10}:    ???", key); },
+								[this, key](const Object& value) { logger->debug("    {:10}:    ???", key); },
+								[this, key](const auto& value) { logger->debug("    {:10}:    {}", key, value); },
+						},
+						value
+				);
 			}
 		} else {
 			logger->debug("Arguments: <empty>");
 		}
 	}
 
-	virtual void visitCommand(const std::string& command, std::vector<LPValue> args) {
+	virtual void visitCommand(const std::string& command) {
+		// Order of finding Method: 1) Docclass, 2) Module, 3) Globals
 		/** \todo: don't hardcode the module to load from **/
-		if (scriptctx.invokeMethod(command, args, loadedModules[0])) {
-		} else if (scriptctx.invokeMethod(command, args, document, engine)) {
+		auto method =
+				scriptctx
+						.getMethod(command, doctypeScriptObject)									   // 1) Docclass
+						.or_else([&](auto) { return scriptctx.getMethod(command, loadedModules[0]); }) // 2) Modules
+						.or_else([&](auto) { return scriptctx.getMethod(command, engine); });		   // 3) Globals
+		if (method) {
+			// read args
+			logger->trace("Reading parameters for {}:", method->name());
+			LPArray args;
+			for (auto&& arg : method->params()) {
+				readArgument(arg, args);
+			}
+			/*while (lookAhead(0) == '{') {
+				advance();
+				args.emplace_back(readValue([](char32_t c) { return c == '}'; }));
+				if (advance() != '}')
+					abort();
+			}*/
+			method->invoke(args);
 		} else {
-			logger->critical("Could not invoke {}", command);
-			abort(); /** \todo more graceful shutdown **/
+			logger->critical("Could not find {}", command);
+			/** \todo Instead of shutting down here, we should add a flag (e.g., -fmissing-method) that toggles between
+			 *  failing when the method does not exist or simply warning about it. **/
+			std::abort(); /** \todo more graceful shutdown **/
 		}
 	}
 	virtual void visitWhitespace() { document.addWhitespace(); }
 	virtual void visitCharacter(char32_t c) { document.addCharacter(c); }
+
+	/**
+	 * @brief Parses the parameter described by \p param and appends it to \p args .
+	 * @details The parameter is parsed by looking up a constructor that takes the Parser as its argument. I.e., if the
+	 * parameter has type `MyType`, then the argument is constructed through the `MyType(LPParser&)` constructor.
+	 * 
+	 * @param param 
+	 * @param args 
+	 */
+	void readArgument(const lp::script::Param& param, LPArray& args) {
+		const auto& typeId = param.typeId;
+		if ((typeId & asTYPEID_MASK_OBJECT) != 0) {
+			LPArray tmp{};
+			tmp.push_back(LPValue{static_cast<void*>(parser)});
+			auto x = scriptctx.construct(param.typeId, "string(parser&inout)", tmp);
+			assert(x.has_value());
+			args.push_back(x.value());
+			/*if (auto value = scriptctx.construct(param.typeId, "(Parser)", {parser})) {
+				args.emplace_back(std::move(value.value()));
+			} else {
+				logger->critical("Failed to parse argument: {}", static_cast<unsigned>(value.error()));
+				std::abort(); /** \todo handle more gracefully **/
+			/*} */
+		} else {
+			if (typeId == asTYPEID_INT32) {
+				auto tmp = parser->readBetween('{', '}');
+				args.push_back(lp::LPValue{std::atoi(tmp.c_str())});
+				return;
+			}
+			abort();
+		}
+	}
 };
 
 Document lp::Parser::parse(std::istream& input, std::vector<path> includeDirs) noexcept {
@@ -141,6 +206,7 @@ Document lp::Parser::parse(std::istream& input, std::vector<path> includeDirs) n
 	auto start = std::chrono::steady_clock::now();
 	NewVisitor visitor(driver, includeDirs);
 	lp::LPParser parser{input, visitor};
+	visitor.setParser(parser);
 	parser.parseFile();
 	visitor.document.flush();
 

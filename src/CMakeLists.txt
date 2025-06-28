@@ -2,26 +2,31 @@ include(FetchContent)
 enable_testing()
 
 add_library(letterpress)
-target_sources(letterpress PRIVATE
-	letterpress/logging.cpp
-	letterpress/parser.cpp
-	letterpress/document/boxes.cpp
-	letterpress/document/document.cpp
-	letterpress/document/hyphenation.cpp
-	letterpress/pdf/constants.cpp
-	letterpress/pdf/font_descriptor.cpp
-	letterpress/pdf/font.cpp
-	letterpress/pdf/page.cpp
-	letterpress/pdf/pdf.cpp
-	letterpress/pdf/pdfdriver.cpp
-	letterpress/pdf/utils/content_stream_writer.cpp
-	letterpress/pdf/utils/file_content_provider.cpp
-	letterpress/pdf/utils/fontfile.cpp
-	letterpress/pdf/utils/page_content_stream.cpp
-	letterpress/pdf/utils/resources.cpp
-	letterpress/scriptengine/context.cpp
-	letterpress/scriptengine/module.cpp
-	letterpress/scriptengine/scriptengine.cpp
+target_sources(letterpress
+	PRIVATE
+		letterpress/logging.cpp
+		letterpress/parser.cpp
+		letterpress/document/boxes.cpp
+		letterpress/document/document.cpp
+		letterpress/document/hyphenation.cpp
+		letterpress/parser/lpparser.cpp
+		letterpress/parser/parser.cpp
+		letterpress/pdf/constants.cpp
+		letterpress/pdf/font_descriptor.cpp
+		letterpress/pdf/font.cpp
+		letterpress/pdf/page.cpp
+		letterpress/pdf/pdf.cpp
+		letterpress/pdf/pdfdriver.cpp
+		letterpress/pdf/utils/content_stream_writer.cpp
+		letterpress/pdf/utils/file_content_provider.cpp
+		letterpress/pdf/utils/fontfile.cpp
+		letterpress/pdf/utils/page_content_stream.cpp
+		letterpress/pdf/utils/resources.cpp
+		letterpress/scriptengine/context.cpp
+		letterpress/scriptengine/method.cpp
+		letterpress/scriptengine/module.cpp
+		letterpress/scriptengine/object.cpp
+		letterpress/scriptengine/scriptengine.cpp
 )
 target_compile_features(letterpress PUBLIC cxx_std_23)
 target_include_directories(letterpress PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../include)
@@ -36,9 +41,13 @@ target_link_libraries(letterpressexe letterpress)
 ##########################################################################################
 # Libraries
 ##########################################################################################
+set(BUILD_SHARED_LIBS OFF)
+
 # spdlog for logging
-FetchContent_Declare(spdlog GIT_REPOSITORY https://github.com/gabime/spdlog.git GIT_TAG v1.14.1)
-FetchContent_MakeAvailable(spdlog)
+CPMAddPackage(URI "gh:gabime/spdlog@1.14.1"
+	EXCLUDE_FROM_ALL YES
+	# OPTIONS "SPDLOG_USE_STD_FORMAT ON"
+)
 target_link_libraries(letterpress spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32>)
 
 # Freetype
@@ -63,16 +72,16 @@ target_sources(letterpress PRIVATE
 	${angelscript_SOURCE_DIR}/add_on/scriptbuilder/scriptbuilder.cpp
 #	${angelscript_SOURCE_DIR}/add_on/scriptstdstring/scriptstdstring_utils.cpp
 	${angelscript_SOURCE_DIR}/add_on/scriptstdstring/scriptstdstring.cpp
+	${angelscript_SOURCE_DIR}/add_on/scriptdictionary/scriptdictionary.cpp
+	${angelscript_SOURCE_DIR}/add_on/scriptarray/scriptarray.cpp  # Required by scriptdictionary
 )
 target_include_directories(letterpress PUBLIC ${angelscript_SOURCE_DIR}/add_on)
 
 # QPDF
-FetchContent_Declare(QPDF GIT_REPOSITORY https://github.com/qpdf/qpdf.git GIT_TAG v11.9.1)
-FetchContent_MakeAvailable(QPDF)
+CPMAddPackage(URI "gh:qpdf/qpdf@11.9.1" EXCLUDE_FROM_ALL YES)
 target_link_libraries(letterpress libqpdf)
-target_include_directories(letterpress PUBLIC ${QPDF_SOURCE_DIR}/include)
+target_include_directories(letterpress PUBLIC ${qpdf_SOURCE_DIR}/include)
 
 # CLI11
-FetchContent_Declare(cli11 GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git GIT_TAG v2.4.2)
-FetchContent_MakeAvailable(cli11)
+CPMAddPackage(URI "gh:CLIUtils/CLI11@2.4.2" EXCLUDE_FROM_ALL YES)
 target_link_libraries(letterpressexe CLI11::CLI11)

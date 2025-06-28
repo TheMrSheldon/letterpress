@@ -8,9 +8,9 @@ option(LP_BUILD_DEB "Build debian package" ON)
 option(LP_ONLY_DOCS "Build only documentation -- this disables tests and others" OFF)
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
-######################################################
-# READ VERSION NUMBER FROM ./include/letterpress.hpp #
-######################################################
+########################################################################################################################
+# READ VERSION NUMBER FROM ./include/letterpress.hpp                                                                   #
+########################################################################################################################
 file(STRINGS "${CMAKE_CURRENT_LIST_DIR}/include/letterpress/letterpress.hpp" LETTERPRESS_VERSION_MACRO REGEX "^\tconstexpr const auto version = \"(([0-9]+\\.)*[0-9]+)\";$")
 string(REGEX REPLACE "^\tconstexpr const auto version = \"(([0-9]+\\.)*[0-9]+)\"\\;$" "\\1" LETTERPRESS_VERSION ${LETTERPRESS_VERSION_MACRO})
 
@@ -18,15 +18,45 @@ project(letterpress VERSION ${LETTERPRESS_VERSION} LANGUAGES CXX)
 
 message("Compiling Letterpress v${LETTERPRESS_VERSION}")
 
+########################################################################################################################
+# LOAD CPM                                                                                                             #
+########################################################################################################################
+set(CPM_DOWNLOAD_VERSION 0.42.0)
+set(CPM_HASH_SUM "2020b4fc42dba44817983e06342e682ecfc3d2f484a581f11cc5731fbe4dce8a")
 
+if(CPM_SOURCE_CACHE)
+set(CPM_DOWNLOAD_LOCATION "${CPM_SOURCE_CACHE}/cpm/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+elseif(DEFINED ENV{CPM_SOURCE_CACHE})
+set(CPM_DOWNLOAD_LOCATION "$ENV{CPM_SOURCE_CACHE}/cpm/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+else()
+set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+endif()
+
+# Expand relative path. This is important if the provided path contains a tilde (~)
+get_filename_component(CPM_DOWNLOAD_LOCATION ${CPM_DOWNLOAD_LOCATION} ABSOLUTE)
+
+file(DOWNLOAD
+	https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
+	${CPM_DOWNLOAD_LOCATION} EXPECTED_HASH SHA256=${CPM_HASH_SUM}
+	TLS_VERIFY OFF # Sometimes broken in the GitHub Action; we have the checksum to verify that there is nothing malicious going on; try at some point to remove this line
+)
+
+include(${CPM_DOWNLOAD_LOCATION})
+message("Loaded CPM v${CURRENT_CPM_VERSION}")
+
+
+
+########################################################################################################################
+# PROJECT SETUP                                                                                                        #
+########################################################################################################################
 set(CMAKE_INSTALL_BINDIR "${CMAKE_CURRENT_LIST_DIR}/bin/")
 if (NOT LP_ONLY_DOCS)
 	add_subdirectory(src)
 endif()
 
-##########################################################################################
+########################################################################################################################
 # Testing
-##########################################################################################
+########################################################################################################################
 # Testing only available if this is the main app
 # Emergency override MODERN_CMAKE_BUILD_TESTING provided as well
 if(NOT LP_ONLY_DOCS AND (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR MODERN_CMAKE_BUILD_TESTING) AND LP_BUILD_TESTS)
@@ -34,9 +64,9 @@ if(NOT LP_ONLY_DOCS AND (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR MODERN_CMAK
 	add_subdirectory(tests)
 endif()
 
-##########################################################################################
+########################################################################################################################
 # Documentation
-##########################################################################################
+########################################################################################################################
 # Documentation only available if this is the main app
 if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME) AND LP_BUILD_DOCS)
 	find_package(Doxygen REQUIRED)
@@ -91,9 +121,9 @@ if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME) AND LP_BUILD_DOCS)
 endif()
 
 
-###########################################################################################
+########################################################################################################################
 # Debian Package
-##########################################################################################
+########################################################################################################################
 # Debian Packaging only available if this is the main app
 if(NOT LP_ONLY_DOCS AND (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME) AND LP_BUILD_DEB)
 	install(TARGETS letterpressexe ARCHIVE DESTINATION lib COMPONENT letterpress)

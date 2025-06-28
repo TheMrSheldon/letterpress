@@ -1,6 +1,5 @@
 build
 examples/**/*.pdf
-.antlr
 
 # Precompiled ".as" files
 *.lpbin

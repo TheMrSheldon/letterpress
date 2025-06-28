@@ -7,7 +7,7 @@ FROM ubuntu:24.04
 USER root
 RUN <<EOF
 apt-get update
-apt-get -y install g++-13 cmake git antlr4
+apt-get -y install g++-13 cmake git
 
 # Needed for the dev environment
 apt-get -y install build-essential cppcheck flawfinder doxygen graphviz gdb clang-tidy clang-format texlive-base
@@ -17,7 +17,7 @@ apt-get -y install zlib1g-dev libjpeg-dev
 EOF
 
 ########################################################################################################################
-# Download Fonts                                                                                        #
+# Download Fonts                                                                                                       #
 ########################################################################################################################
 RUN <<EOF
 apt-get -y install wget

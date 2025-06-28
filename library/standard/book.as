@@ -1,6 +1,6 @@
 
 class Book : IDocumentType {
-	Book() {}
+	Book(dictionary kwargs) {}
 
     void part(string heading) {
         /** \todo write heading **/

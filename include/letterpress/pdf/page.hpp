@@ -1,8 +1,8 @@
 #pragma once
 
+#include "font.hpp"
 #include "utils/page_content_stream.hpp"
 #include "utils/resources.hpp"
-#include "font.hpp"
 
 #include <qpdf/QPDFPageObjectHelper.hh>
 
@@ -13,27 +13,28 @@ namespace lp::pdf {
 	class Page final {
 		friend class PDF;
 		using PageContentStream = lp::pdf::utils::PageContentStream;
+
 	private:
 		PageContentStream stream;
 		utils::Resources resources;
 		QPDFPageObjectHelper handle;
-
 
 		Page(const Page& other) = delete;
 		Page(Page&& other) = delete;
 		Page& operator=(const Page& other) = delete;
 
 		QPDFPageObjectHelper& getHandle();
+
 	public:
 		Page(class PDF& pdf);
-
 
 		PageContentStream& getContentStream();
 		utils::Resources& getResources();
 
-		double mmToUserSpace(double length) {
-			auto factor = lp::pdf::mm_to_inch * lp::pdf::inch_to_user * getUserUnit();
-			return length * factor;
+		double toUserSpace(lp::doc::Dimension length) {
+			/* Note: (Tex) Points are exactly 72in. UserUnits are expressed in multiples of 1/72 in (i.e. Tex Points)
+			 * (p. 109 \cite PDF20) */
+			return length.getPoint() * getUserUnit();
 		}
 
 		/**
@@ -63,4 +64,4 @@ namespace lp::pdf {
 		void removeCropBox();
 	};
 
-}
+} // namespace lp::pdf

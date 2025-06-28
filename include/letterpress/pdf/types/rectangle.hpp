@@ -9,7 +9,9 @@ namespace lp::pdf {
 		float lowerlefty;
 		float upperrightx;
 		float upperrighty;
+
 	public:
-		Rectangle(float llx, float lly, float urx, float ury) : value(value) {}
+		Rectangle(float llx, float lly, float urx, float ury)
+				: lowerleftx(llx), lowerlefty(lly), upperrightx(urx), upperrighty(ury) {}
 	};
-}
+} // namespace lp::pdf

@@ -10,4 +10,5 @@ using Catch::Matchers::RangeEquals;
 TEST_CASE("linebreaking", "[linebreaking]") {
 	lp::doc::HBox box;
 	box << lp::doc::HBox();
+	lp::doc::linebreaking(box);
 }

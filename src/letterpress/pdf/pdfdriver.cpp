@@ -90,13 +90,18 @@ void PDFDriver::createGraphic() {}
 
 void PDFDriver::shipout(const lp::doc::VBox& page) {
 	auto& pdfpage = pdf.addPage();
-	int width = (int)pdfpage.mmToUserSpace(page.width.getMillimeter());
-	int height = (int)pdfpage.mmToUserSpace(page.height.getMillimeter());
+	int width = (int)pdfpage.toUserSpace(page.width);
+	int height = (int)pdfpage.toUserSpace(page.height);
 	pdfpage.setMediaBox(0, 0, width, height);
 
 	auto& stream = pdfpage.getContentStream();
-	//stream.beginText().moveText(72, height - 72);
 	stream.beginText().moveText((2_cm).getPoint(), height - (1_em + 2_cm).resolve(12).getPoint());
 	writeVBox(pdfpage, page);
 	stream.endText();
 }
+
+void PDFDriver::setAuthor(std::optional<std::string> author) { /** \todo implement **/ }
+void PDFDriver::setDate(std::optional<std::string> date) { /** \todo implement **/ }
+void PDFDriver::setTitle(std::optional<std::string> title) { /** \todo implement **/ }
+void PDFDriver::setDescription(std::optional<std::string> description) { /** \todo implement **/ }
+void PDFDriver::setKeywords(std::vector<std::string> keywords) { /** \todo implement **/ }

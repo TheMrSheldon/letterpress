@@ -12,6 +12,13 @@ namespace lp::doc {
 	private:
 		static constexpr float InfBadness = 100'000;
 		static constexpr int FlagPenalty = 3000;
+		//
+		/** The following penalties should at some point be configurable:
+		 * - WidowPenalty --
+		 * - OrphanPenalty --
+		 * - RuntPenalty  --
+		 * - PreParenthesisBreakPenalty -- To penalize breaking before an opening round brace (e.g., in "Deep Learning (DL)")
+		 */
 		struct Break {
 			size_t demerit;
 			Break* previousBreak;

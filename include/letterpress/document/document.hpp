@@ -70,6 +70,7 @@ namespace lp::doc {
 
 		void addCharacter(char32_t character);
 		void addWhitespace();
+		void addGlue(lp::doc::Glue glue);
 		void writeParagraph();
 
 		void flush();

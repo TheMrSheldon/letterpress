@@ -16,6 +16,7 @@ namespace lp::doc {
 }
 
 namespace lp::script {
+
 	class ScriptEngine final {
 		friend class Context;
 

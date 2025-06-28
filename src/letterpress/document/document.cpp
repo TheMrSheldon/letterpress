@@ -51,7 +51,14 @@ void Document::ship(AnyBox& top, HBox& hbox) const {
 		const VBox& top = std::get<VBox>(boxes.top());
 		Dimension height = 0_pt;
 		for (auto content : top.content) {
-			height += std::get<HBox>(content).height;
+			std::visit(
+					lp::utils::overloaded{
+							[&height](const Box& box) { height += box.height; },
+							[&height](const Glue& glue) { height += glue.idealwidth; },
+							[](const Penalty& penalty) { /* ignore */ }
+					},
+					content
+			);
 		}
 	}
 }
@@ -106,14 +113,20 @@ void Document::addCharacter(char32_t character) {
 	}
 
 	hbox.content.push_back(glyph);
+	logger->trace("{}", (char)character);
 }
 
 void Document::addWhitespace() {
 	if (mode == Mode::RestHorizMode || mode == Mode::UnrestHorizMode) {
-		/** \todo Resolve EM with actual font size **/
-		auto& hbox = std::get<HBox>(boxes.top());
-		hbox.content.push_back(Glue((1_em / 3).resolve(12, 0), (1_em / 6).resolve(12, 0), (1_em / 9).resolve(12, 0)));
+		addGlue({.idealwidth = (1_em / 3), .stretchability = (1_em / 6), .shrinkability = (1_em / 9)});
 	}
+}
+
+void Document::addGlue(lp::doc::Glue glue) {
+	/** \todo Resolve EM with actual font size **/
+	auto resolved =
+			Glue(glue.idealwidth.resolve(12, 0), glue.stretchability.resolve(12, 0), glue.shrinkability.resolve(12, 0));
+	std::visit([resolved](auto& box) { box.content.emplace_back(resolved); }, boxes.top());
 }
 
 void Document::writeParagraph() {

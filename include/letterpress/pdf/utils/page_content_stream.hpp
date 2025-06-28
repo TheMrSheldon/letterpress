@@ -52,8 +52,20 @@ namespace lp::pdf::utils {
 		/////////////////////////////
 		// Graphics Commands       //
 		/////////////////////////////
-		PageContentStream& drawRect(int posx, int posy, int width, int height);
+		PageContentStream& moveTo(float x, float y);
+		PageContentStream& lineTo(float x, float y);
+		/** \todo **/
+		PageContentStream& closePath();
+		PageContentStream& appendRect(float posx, float posy, float width, float height);
 		PageContentStream& stroke();
+		PageContentStream& closeAndStroke();
+		PageContentStream& fillNonZero();
+		PageContentStream& fillEvenOdd();
+		PageContentStream& fillNonZeroAndStroke();
+		PageContentStream& fillEvenOddAndStroke();
+		PageContentStream& closeFillNonZeroAndStroke();
+		PageContentStream& closeFillEvenOddAndStroke();
+		PageContentStream& endPath();
 
 		void flush();
 

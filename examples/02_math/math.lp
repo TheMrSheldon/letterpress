@@ -6,9 +6,6 @@ doctype essay {
 	institute: [Institute A | Institute B],
 	date: \today,
 }
-
-import liba
-import libb
 ====
 \maketitle
 

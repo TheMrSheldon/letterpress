@@ -1,11 +1,19 @@
 #include <letterpress/scriptengine/scriptengine.hpp>
 
+#include <iostream> /** \todo remove */
+
 #include <angelscript.h>
+#include <scriptarray/scriptarray.h>
 #include <scriptbuilder/scriptbuilder.h>
+#include <scriptdictionary/scriptdictionary.h>
 #include <scriptstdstring/scriptstdstring.h>
 
 #include <letterpress/document/document.hpp>
 #include <letterpress/document/idocclass.hpp>
+#include <letterpress/parser/lpparser.hpp>
+#include <letterpress/scriptengine/method.hpp>
+
+#include "./scriptinterface/doctype.hpp"
 
 using namespace lp::script;
 
@@ -23,16 +31,65 @@ void writeString(lp::doc::Document* d, std::string s) {
 		d->addCharacter(c);
 }
 
-#include <iostream>
+void writeGlue(lp::doc::Document* d, int idealwidth, int stretchability, int shrinkability) {
+	/** \todo allow for dimensions instead of int **/
+	d->addGlue(
+			{.idealwidth = lp::doc::Dimension::point(idealwidth),
+			 .stretchability = lp::doc::Dimension::point(stretchability),
+			 .shrinkability = lp::doc::Dimension::point(shrinkability)}
+	);
+}
+
+void loginfo(spdlog::logger* logger, std::string msg) { logger->info(msg); }
+
+static void registerParserClass(asIScriptEngine* engine, lp::log::LoggerPtr logger) {
+	auto r = engine->RegisterInterface("parser");
+	assert(r >= 0);
+	// r = engine->RegisterInterfaceMethod("parser", "lookAhead(unsigned)");
+	// assert(r >= 0);
+	/** \todo implement **/
+	logger->trace("parser was registered with typeid: {}", engine->GetTypeIdByDecl("parser"));
+}
+
+static void registerGlueClass(asIScriptEngine* engine, lp::log::LoggerPtr logger) {
+	auto r = engine->RegisterObjectType("glue", sizeof(lp::doc::Glue), asOBJ_VALUE | asGetTypeTraits<lp::doc::Glue>());
+	assert(r >= 0);
+	auto factory = +[](lp::doc::Glue* glue, lp::LPParser& parser) {
+		/** \todo implement **/
+		return lp::doc::Glue{
+				.idealwidth = lp::doc::Dimension::centimeter(1),
+				.stretchability = lp::doc::Dimension::centimeter(2),
+				.shrinkability = lp::doc::Dimension::centimeter(3)
+		};
+	};
+	r = engine->RegisterObjectBehaviour(
+			"glue", asBEHAVE_CONSTRUCT, "void f(parser&)", asFUNCTION(factory), asCALL_CDECL_OBJFIRST
+	);
+	assert(r >= 0);
+	logger->trace("glue was registered with typeid: {}", engine->GetTypeIdByDecl("glue"));
+}
 
 bool ScriptEngine::init(lp::doc::Document* doc) {
 	int r = angelscript->SetMessageCallback(asMETHOD(lp::script::ScriptEngine, logCallback), this, asCALL_THISCALL);
 	if (r < 0)
 		return false;
 	RegisterStdString(angelscript);
+	logger->trace("string was registered with typeid: {}", angelscript->GetTypeIdByDecl("string"));
+	RegisterScriptArray(angelscript, true); // Required for scriptdictionary
+	RegisterScriptDictionary(angelscript);
 
-	r = angelscript->RegisterInterface("IDocumentType");
-	assert(r >= 0);
+	registerDocumentTypeInterface(angelscript);
+	registerParserClass(angelscript, logger);
+	registerGlueClass(angelscript, logger);
+	// Register string constructor that takes a parser
+	angelscript->RegisterObjectBehaviour(
+			"string", asBEHAVE_CONSTRUCT, "void f(parser&)", asFUNCTION(+[](std::string* self, lp::LPParser* parser) {
+				new (self) std::string{parser->readBetween('{', '}')};
+			}),
+			asCALL_CDECL_OBJFIRST
+	);
+	//
+
 	if (doc != nullptr) {
 		r = angelscript->RegisterGlobalFunction(
 				"void par()", asMETHOD(lp::doc::Document, writeParagraph), asCALL_THISCALL_ASGLOBAL, doc
@@ -50,6 +107,15 @@ bool ScriptEngine::init(lp::doc::Document* doc) {
 				"void writeString(string)", asFunctionPtr(writeString), asCALL_CDECL_OBJFIRST, doc
 		);
 		assert(r >= 0);
+		r = angelscript->RegisterGlobalFunction(
+				"void writeGlue(int,int,int)", asFunctionPtr(writeGlue), asCALL_CDECL_OBJFIRST, doc
+		);
+		assert(r >= 0);
+		/** Logging Calls **/
+		r = angelscript->RegisterGlobalFunction(
+				"void loginfo(string)", asFunctionPtr(loginfo), asCALL_CDECL_OBJFIRST, logger.get()
+		);
+		assert(r >= 0);
 	} else {
 		r = angelscript->RegisterGlobalFunction("void par()", asSFuncPtr(), asCALL_CDECL);
 		assert(r >= 0);
@@ -58,6 +124,11 @@ bool ScriptEngine::init(lp::doc::Document* doc) {
 		r = angelscript->RegisterGlobalFunction("void popFont()", asSFuncPtr(), asCALL_CDECL);
 		assert(r >= 0);
 		r = angelscript->RegisterGlobalFunction("void writeString(string)", asSFuncPtr(), asCALL_CDECL);
+		assert(r >= 0);
+		r = angelscript->RegisterGlobalFunction("void writeGlue(int,int,int)", asSFuncPtr(), asCALL_CDECL);
+		assert(r >= 0);
+		/** Logging Calls **/
+		r = angelscript->RegisterGlobalFunction("void loginfo(string)", asSFuncPtr(), asCALL_CDECL);
 		assert(r >= 0);
 	}
 	return true;

@@ -52,11 +52,11 @@ namespace lp {
 		LPValue readValue(Pred isDelimiter) noexcept {
 			switch (lookAhead(0)) {
 			case '[':
-				return readArray();
+				return {readArray()};
 			case '{':
-				return readDict();
+				return {readDict()};
 			case '\"':
-				return readQuotedString();
+				return {readQuotedString()};
 			default:
 				skipWhitespaces();
 				size_t lastIdx = 0;
@@ -65,8 +65,8 @@ namespace lp {
 				std::string value = readNext(lastIdx);
 				rtrim(value);
 				if (std::regex_match(value, Number))
-					return (float)std::atof(value.c_str());
-				return value;
+					return {(float)std::atof(value.c_str())};
+				return {value};
 			};
 		}
 		LPDict readDict() noexcept {
@@ -82,7 +82,7 @@ namespace lp {
 				skipWhitespaces();
 				auto value = readValue([](char32_t c) { return c == '}' || c == ','; });
 				skipWhitespaces();
-				dict[key] = value;
+				dict[key] = std::move(value);
 				if (lookAhead(0) != '}' && lookAhead(0) != ',')
 					abort(); /** \todo handle more gracefully **/
 				if (lookAhead(0) == ',')
@@ -92,13 +92,13 @@ namespace lp {
 			advance(); // pop the }
 			return dict;
 		}
-		std::vector<std::any> readArray() noexcept {
-			std::vector<std::any> array;
+		LPArray readArray() noexcept {
+			LPArray array;
 			if (advance() != '[')
 				abort(); /** \todo handle more gracefully **/
 			skipWhitespaces();
 			while (lookAhead(0) != ']') {
-				array.push_back(readValue([](char32_t c) { return c == ']' || c == ','; }));
+				array.emplace_back(readValue([](char32_t c) { return c == ']' || c == ','; }));
 				skipWhitespaces();
 				if (lookAhead(0) != ']' && lookAhead(0) != ',')
 					abort(); /** \todo handle more gracefully **/
@@ -142,20 +142,21 @@ namespace lp {
 			while ((cur = lookAhead(0)) != eof) {
 				size_t len;
 				if (len = lookAheadMatches(Par)) { /** \todo generalize to active sequences **/
-					visitor.visitCommand("par", {});
+					visitor.visitCommand("par");
 					advance(len);
 				} else {
 					advance();
 					if (cur == '\\') {
 						auto command = readIdentifier();
-						std::vector<LPValue> args;
+						/** \todo remove **/
+						/*LPArray args;
 						while (lookAhead(0) == '{') {
 							advance();
 							args.emplace_back(readValue([](char32_t c) { return c == '}'; }));
 							if (advance() != '}')
 								abort();
-						}
-						visitor.visitCommand(command, args);
+						}*/
+						visitor.visitCommand(command);
 					} else if (std::isspace(cur)) {
 						visitor.visitWhitespace();
 					} else {
@@ -164,21 +165,19 @@ namespace lp {
 				}
 			}
 		}
-	};
 
-	const std::regex LPParser::EndPreamble{"==+\\n", std::regex_constants::nosubs | std::regex_constants::optimize};
-	const std::regex LPParser::Import{"import\\b", std::regex_constants::nosubs | std::regex_constants::optimize};
-	const std::regex LPParser::Doctype{"doctype\\b", std::regex_constants::nosubs | std::regex_constants::optimize};
-	const std::regex LPParser::Identifier{
-			"[A-Za-z][A-Za-z0-9]*", std::regex_constants::nosubs | std::regex_constants::optimize
+		std::string readBetween(char left, char right) {
+			char32_t c = advance();
+			assert(c == '{');
+			size_t len = 0;
+			while (lookAhead(len) != '}')
+				++len;
+			std::string str{readNext(len)};
+			c = advance();
+			assert(c == '}');
+			return str;
+		}
 	};
-	const std::regex LPParser::Number{
-			"[0-9]+|([0-9]*\\.[0-9]+)", std::regex_constants::nosubs | std::regex_constants::optimize
-	};
-	const std::regex LPParser::QuotedString{
-			"\\\"(\\\\\\\"|[^\"])*\\\"", std::regex_constants::nosubs | std::regex_constants::optimize
-	};
-	const std::regex LPParser::Par{"\\n\\s*\\n", std::regex_constants::nosubs | std::regex_constants::optimize};
 } // namespace lp
 
 #endif
