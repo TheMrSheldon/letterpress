@@ -56,6 +56,7 @@ static void registerGlueClass(asIScriptEngine* engine, lp::log::LoggerPtr logger
 	assert(r >= 0);
 	auto factory = +[](lp::doc::Glue* glue, lp::LPParser& parser) {
 		/** \todo implement **/
+		abort();
 		return lp::doc::Glue{
 				.idealwidth = lp::doc::Dimension::centimeter(1),
 				.stretchability = lp::doc::Dimension::centimeter(2),
@@ -64,6 +65,11 @@ static void registerGlueClass(asIScriptEngine* engine, lp::log::LoggerPtr logger
 	};
 	r = engine->RegisterObjectBehaviour(
 			"glue", asBEHAVE_CONSTRUCT, "void f(parser&)", asFUNCTION(factory), asCALL_CDECL_OBJFIRST
+	);
+	assert(r >= 0);
+	r = engine->RegisterObjectBehaviour(
+			"glue", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(+[](lp::doc::Glue* glue) { /** \todo implement **/ }),
+			asCALL_CDECL_OBJFIRST
 	);
 	assert(r >= 0);
 	logger->trace("glue was registered with typeid: {}", engine->GetTypeIdByDecl("glue"));

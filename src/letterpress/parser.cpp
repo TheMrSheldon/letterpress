@@ -148,15 +148,8 @@ public:
 			// read args
 			logger->trace("Reading parameters for {}:", method->name());
 			LPArray args;
-			for (auto&& arg : method->params()) {
+			for (auto&& arg : method->params())
 				readArgument(arg, args);
-			}
-			/*while (lookAhead(0) == '{') {
-				advance();
-				args.emplace_back(readValue([](char32_t c) { return c == '}'; }));
-				if (advance() != '}')
-					abort();
-			}*/
 			method->invoke(args);
 		} else {
 			logger->critical("Could not find {}", command);
@@ -184,18 +177,18 @@ public:
 			auto x = scriptctx.construct(param.typeId, "string(parser&inout)", tmp);
 			assert(x.has_value());
 			args.push_back(x.value());
+			/** \todo this currently only allows for string arguments; below is a sketch for others */
 			/*if (auto value = scriptctx.construct(param.typeId, "(Parser)", {parser})) {
 				args.emplace_back(std::move(value.value()));
 			} else {
 				logger->critical("Failed to parse argument: {}", static_cast<unsigned>(value.error()));
 				std::abort(); /** \todo handle more gracefully **/
 			/*} */
+		} else if (typeId == asTYPEID_INT32) {
+			auto tmp = parser->readBetween('{', '}');
+			args.push_back(lp::LPValue{std::atoi(tmp.c_str())});
 		} else {
-			if (typeId == asTYPEID_INT32) {
-				auto tmp = parser->readBetween('{', '}');
-				args.push_back(lp::LPValue{std::atoi(tmp.c_str())});
-				return;
-			}
+			logger->critical("Could not parse primitive type with type ID {}", typeId);
 			abort();
 		}
 	}

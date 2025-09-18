@@ -113,7 +113,7 @@ void Document::addCharacter(char32_t character) {
 	}
 
 	hbox.content.push_back(glyph);
-	logger->trace("{}", (char)character);
+	//logger->trace("{}", (char)character);
 }
 
 void Document::addWhitespace() {

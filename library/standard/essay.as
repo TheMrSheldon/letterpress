@@ -16,7 +16,7 @@ class Essay : IDocumentType {
 	}
 
 	void section(string heading) {
-		pushFont("DejaVuSerif");
+		pushFont("cmbx12");
 		/** \todo write heading **/
 		writeString(heading);
 		par();
@@ -24,7 +24,7 @@ class Essay : IDocumentType {
 	}
 
 	void subsection(string heading) {
-		pushFont("DejaVuSerif");
+		pushFont("cmbx12");
 		/** \todo write heading **/
 		writeString(heading);
 		par();
@@ -32,7 +32,7 @@ class Essay : IDocumentType {
 	}
 
 	void paragraph(string heading) {
-		pushFont("DejaVuSerif");
+		pushFont("cmbx12");
 		/** \todo write heading **/
 		writeString(heading);
 		popFont();

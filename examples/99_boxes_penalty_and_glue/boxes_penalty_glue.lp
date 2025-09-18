@@ -7,4 +7,21 @@ doctype Essay {
 	date: "\today"
 }
 ==
-\writeString{Hello}\writeGlue{1}{2}{3}\writeString{World}
+
+\paragraph{Test}
+
+III
+
+I\writeGlue{0}{0}{0}I\writeGlue{0}{0}{0}I
+
+I\writeGlue{10}{0}{0}I\writeGlue{0}{0}{0}I
+
+I\writeGlue{10}{0}{0}I\writeGlue{10}{0}{0}I
+
+I\writeGlue{0}{100}{0}I\writeGlue{0}{10000}{0}I
+
+I\hfill I
+
+I\hfill I\hfill I
+
+I\hfill I\hfill I\hfill I\hfill I

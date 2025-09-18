@@ -5,8 +5,6 @@
 using lp::doc::HBox;
 using lp::utils::overloaded;
 
-static constexpr float InfBadness = 100000;
-
 namespace lp::doc {
 	class Justifier final {
 	private:
@@ -54,7 +52,7 @@ namespace lp::doc {
 						overloaded{
 								[&box](const Glue& glue) {
 									box << glue;
-									/** before constructBox, glue should be scaled and its true width stored in
+									/** before constructBox, glue should already be scaled and its true width stored in
 									 * idealwidth */
 									box.width += glue.idealwidth;
 								},
@@ -94,18 +92,37 @@ namespace lp::doc {
 
 	public:
 		template <typename TBox, typename TElem>
-		std::generator<TBox>
-		linebreaking(const std::forward_iterator auto begin, const std::forward_iterator auto end) {
+		std::generator<TBox> linebreaking(const std::ranges::range auto boxes) {
 			/** \todo break paragraphs non-greedily **/
 			/** \todo remove hardcoded width **/
+			constexpr auto pageWidth = 210_mm - 4_cm;
 			std::vector<TElem> buffer;
 			std::vector<Break> candidates;
-			candidates.emplace_back(Break{
-					.demerit = 0, .previousBreak = 0, .shrinkability = 0_pt, .width = 0_pt, .stretchability = 0_pt
-			});
-			for (auto it = begin; it != end; ++it) {
-				Break& cur = candidates.back();
-				TElem& element = buffer.emplace_back(*it);
+			candidates.emplace_back(
+					Break{.demerit = 0,
+						  .previousBreak = nullptr,
+						  .shrinkability = 0_pt,
+						  .width = 0_pt,
+						  .stretchability = 0_pt}
+			);
+			auto shipout = [&]() {
+				auto& cur = candidates.back();
+				adjustGlue(&*buffer.begin(), &*buffer.end(), cur, pageWidth);
+				auto tmp = constructBox(buffer.begin(), buffer.end());
+				buffer.clear();
+				candidates.clear();
+				candidates.emplace_back(
+						Break{.demerit = 0,
+							  .previousBreak = nullptr,
+							  .shrinkability = 0_pt,
+							  .width = 0_pt,
+							  .stretchability = 0_pt}
+				);
+				return tmp;
+			};
+			for (const auto& elem : boxes) {
+				auto& cur = candidates.back();
+				TElem& element = buffer.emplace_back(elem);
 				std::visit(
 						overloaded{
 								[&cur](const Box& box) { cur.width += box.width; },
@@ -118,30 +135,17 @@ namespace lp::doc {
 						},
 						element
 				);
-				if (cur.width + cur.stretchability >= 210_mm - 4_cm && std::holds_alternative<Glue>(element)) {
-					adjustGlue(&*buffer.begin(), &*buffer.end(), cur, 210_mm - 4_cm);
-					co_yield constructBox(buffer.begin(), buffer.end());
-					buffer.clear();
-					candidates.clear();
-					candidates.emplace_back(
-							Break{.demerit = 0,
-								  .previousBreak = 0,
-								  .shrinkability = 0_pt,
-								  .width = 0_pt,
-								  .stretchability = 0_pt}
-					);
+				if (cur.width /*+ cur.stretchability*/ >= pageWidth && std::holds_alternative<Glue>(element)) {
+					co_yield shipout();
 				}
 			}
-			if (!buffer.empty()) {
-				Break& cur = candidates.back();
-				adjustGlue(&*buffer.begin(), &*buffer.end(), cur, 210_mm - 4_cm);
-				co_yield constructBox(buffer.begin(), buffer.end());
-			}
+			if (!buffer.empty())
+				co_yield shipout();
 		}
 	};
 } // namespace lp::doc
 
 std::generator<HBox> lp::doc::linebreaking(const HBox& hbox) {
 	Justifier justifier;
-	return justifier.linebreaking<HBox, HBox::Elem>(hbox.content.begin(), hbox.content.end());
+	return justifier.linebreaking<HBox, HBox::Elem>(hbox.content);
 }

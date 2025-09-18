@@ -27,7 +27,7 @@ inline std::string cpp20_codepoint_to_utf8(char32_t cp) // C++20 Sandard
 	std::mbstate_t mbs;
 	codecvt_utf8 ccv;
 
-	if (ccv.out(mbs, from, from + 1, from, utf8, utf8 + 4, end_of_utf8))
+	if (ccv.out(mbs, from, from + 1, from, std::begin(utf8), std::end(utf8), end_of_utf8))
 		throw std::runtime_error("bad conversion");
 
 	return {reinterpret_cast<char*>(utf8), reinterpret_cast<char*>(end_of_utf8)};
@@ -64,6 +64,8 @@ void PDFDriver::writeHBox(lp::pdf::Page& page, const lp::doc::HBox& hbox) {
 					text = "";
 					width = 0_pt;
 				}
+				stream.getStreamWriter().showTextAdjusted(array);
+				array = {};
 				/** Change font **/
 				stream.setFont(font, 12);
 			}
